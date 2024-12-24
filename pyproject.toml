@@ -1,0 +1,50 @@
+[tool.ruff]
+line-length = 120
+indent-width = 4
+exclude = [
+    ".eggs",
+    ".git",
+    ".pytest_cache",
+    ".ruff_cache",
+    ".venv",
+    ".vscode",
+    "__pypackages__",
+    "_build",
+    "node_modules",
+    "site-packages",
+    "venv",
+]
+
+[tool.ruff.lint]
+extend-select = ["E501"]
+
+ignore = [
+  "B008",
+]
+
+select = [
+  "E",   # pycodestyle
+  "W",   # warning
+  "F",   # pyflakes
+  "UP",  # pyupgrade,
+  "I",   # isort,
+  "B",   # flake8-bugbear,
+  "N",   # pep8-naming.
+  "PT",  # flake8-pytest-style
+  "ANN", # flake8-annotations
+  "BLE", # flake8-blind-except
+  "FBT", # flake8-boolean-trap
+  "COM", # flake8-commas
+  "SIM", # flake8-simplify
+  "TID"  # flake8-tidy-imports 
+]
+
+[tool.ruff.format]
+# Like Black, use double quotes for strings.
+quote-style = "double"
+
+# Like Black, indent with spaces, rather than tabs.
+indent-style = "space"
+
+# Like Black, automatically detect the appropriate line ending.
+line-ending = "auto"
