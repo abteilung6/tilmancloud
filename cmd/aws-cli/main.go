@@ -22,29 +22,7 @@ func getEC2Client(ctx context.Context, region string) (*ec2.Client, error) {
 	return client, nil
 }
 
-func cmdCreate(ctx context.Context, client *ec2.Client) error {
-	fmt.Println("--- Creating EC2 Instance ---")
-
-	runInput := &ec2.RunInstancesInput{
-		ImageId:      aws.String("ami-004e960cde33f9146"),
-		InstanceType: types.InstanceTypeT2Micro,
-		MinCount:     aws.Int32(1),
-		MaxCount:     aws.Int32(1),
-	}
-
-	runResult, err := client.RunInstances(ctx, runInput)
-	if err != nil {
-		return fmt.Errorf("failed to run instance: %w", err)
-	}
-
-	if len(runResult.Instances) == 0 {
-		return fmt.Errorf("no instances were created")
-	}
-
-	instanceID := *runResult.Instances[0].InstanceId
-	fmt.Printf("Instance launched! Instance ID: %s\n", instanceID)
-	fmt.Printf("Current state: %s\n", runResult.Instances[0].State.Name)
-
+func waitForInstanceRunning(ctx context.Context, client *ec2.Client, instanceID string) error {
 	fmt.Println("Waiting for instance to be running...")
 	maxWaitTime := 5 * time.Minute
 	checkInterval := 10 * time.Second
@@ -71,7 +49,7 @@ func cmdCreate(ctx context.Context, client *ec2.Client) error {
 
 			if state == types.InstanceStateNameRunning {
 				fmt.Printf("✓ Instance is now running!\n")
-				break
+				return nil
 			}
 
 			if state == types.InstanceStateNameTerminated || state == types.InstanceStateNameStopped {
@@ -80,6 +58,34 @@ func cmdCreate(ctx context.Context, client *ec2.Client) error {
 		}
 
 		time.Sleep(checkInterval)
+	}
+}
+
+func cmdCreate(ctx context.Context, client *ec2.Client) error {
+	fmt.Println("--- Creating EC2 Instance ---")
+
+	runInput := &ec2.RunInstancesInput{
+		ImageId:      aws.String("ami-004e960cde33f9146"),
+		InstanceType: types.InstanceTypeT2Micro,
+		MinCount:     aws.Int32(1),
+		MaxCount:     aws.Int32(1),
+	}
+
+	runResult, err := client.RunInstances(ctx, runInput)
+	if err != nil {
+		return fmt.Errorf("failed to run instance: %w", err)
+	}
+
+	if len(runResult.Instances) == 0 {
+		return fmt.Errorf("no instances were created")
+	}
+
+	instanceID := *runResult.Instances[0].InstanceId
+	fmt.Printf("Instance launched! Instance ID: %s\n", instanceID)
+	fmt.Printf("Current state: %s\n", runResult.Instances[0].State.Name)
+
+	if err := waitForInstanceRunning(ctx, client, instanceID); err != nil {
+		return err
 	}
 
 	describeInput := &ec2.DescribeInstancesInput{
