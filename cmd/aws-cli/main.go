@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -110,6 +111,7 @@ func cmdCreate(ctx context.Context, client *ec2.Client) error {
 }
 
 func main() {
+	command := os.Args[1]
 	ctx := context.Background()
 
 	ec2Client, err := getEC2Client(ctx, "eu-central-1")
@@ -117,8 +119,14 @@ func main() {
 		log.Fatalf("Failed to create EC2 client: %v", err)
 	}
 
-	if err := cmdCreate(ctx, ec2Client); err != nil {
-		log.Fatalf("Create command failed: %v", err)
+	switch command {
+	case "create":
+		if err := cmdCreate(ctx, ec2Client); err != nil {
+			log.Fatalf("Create command failed: %v", err)
+		}
+	default:
+		fmt.Fprintf(os.Stderr, "Unknown command: %s\n\n", command)
+		os.Exit(1)
 	}
 }
 
