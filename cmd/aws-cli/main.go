@@ -110,7 +110,53 @@ func cmdCreate(ctx context.Context, client *ec2.Client) error {
 	return nil
 }
 
+func cmdList(ctx context.Context, client *ec2.Client) error {
+	fmt.Println("--- Listing EC2 Instances ---")
+
+	describeInput := &ec2.DescribeInstancesInput{}
+	describeResult, err := client.DescribeInstances(ctx, describeInput)
+	if err != nil {
+		return fmt.Errorf("failed to describe instances: %w", err)
+	}
+
+	totalInstances := 0
+	for _, reservation := range describeResult.Reservations {
+		totalInstances += len(reservation.Instances)
+	}
+
+	if totalInstances == 0 {
+		fmt.Println("No instances found.")
+		return nil
+	}
+
+	fmt.Printf("\nFound %d instance(s):\n\n", totalInstances)
+	fmt.Printf("%-20s %-15s %-18s %-18s %-12s\n", "Instance ID", "State", "Type", "Public IP", "Private IP")
+	fmt.Println("--------------------------------------------------------------------------------")
+
+	for _, reservation := range describeResult.Reservations {
+		for _, instance := range reservation.Instances {
+			instanceID := getPtrStringValue(instance.InstanceId)
+			state := string(instance.State.Name)
+			instanceType := string(instance.InstanceType)
+			publicIP := getPtrStringValue(instance.PublicIpAddress)
+			privateIP := getPtrStringValue(instance.PrivateIpAddress)
+
+			fmt.Printf("%-20s %-15s %-18s %-18s %-12s\n",
+				instanceID, state, instanceType, publicIP, privateIP)
+		}
+	}
+
+	return nil
+}
+
 func main() {
+	if len(os.Args) < 2 {
+		fmt.Fprintf(os.Stderr, "Error: command required\n")
+		fmt.Fprintf(os.Stderr, "Usage: %s <command>\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "Commands: create, list\n")
+		os.Exit(1)
+	}
+
 	command := os.Args[1]
 	ctx := context.Background()
 
@@ -123,6 +169,10 @@ func main() {
 	case "create":
 		if err := cmdCreate(ctx, ec2Client); err != nil {
 			log.Fatalf("Create command failed: %v", err)
+		}
+	case "list":
+		if err := cmdList(ctx, ec2Client); err != nil {
+			log.Fatalf("List command failed: %v", err)
 		}
 	default:
 		fmt.Fprintf(os.Stderr, "Unknown command: %s\n\n", command)
