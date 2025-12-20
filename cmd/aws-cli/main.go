@@ -12,20 +12,28 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 )
 
+func getEC2Client(ctx context.Context, region string) (*ec2.Client, error) {
+	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(region))
+	if err != nil {
+		return nil, fmt.Errorf("failed to load AWS config: %w", err)
+	}
+
+	client := ec2.NewFromConfig(cfg)
+	return client, nil
+}
+
 func main() {
 	fmt.Println("Hello, World!")
 
 	ctx := context.Background()
 
-	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion("eu-central-1"))
+	ec2Client, err := getEC2Client(ctx, "eu-central-1")
 	if err != nil {
-		log.Fatalf("Failed to load AWS config: %v", err)
+		log.Fatalf("Failed to create EC2 client: %v", err)
 	}
 
 	fmt.Printf("AWS Config loaded successfully!\n")
-	fmt.Printf("Region: %s\n", cfg.Region)
-
-	ec2Client := ec2.NewFromConfig(cfg)
+	fmt.Printf("Region: eu-central-1\n")
 
 	result, err := ec2Client.DescribeRegions(ctx, nil)
 	if err != nil {
