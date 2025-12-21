@@ -49,7 +49,7 @@ func WaitForInstanceRunning(ctx context.Context, client EC2Client, instanceID st
 	}
 }
 
-func CreateInstance(ctx context.Context, client EC2Client) error {
+func CreateInstance(ctx context.Context, client EC2Client) (string, error) {
 	fmt.Println("--- Creating EC2 Instance ---")
 
 	runInput := &awsec2.RunInstancesInput{
@@ -61,40 +61,18 @@ func CreateInstance(ctx context.Context, client EC2Client) error {
 
 	runResult, err := client.RunInstances(ctx, runInput)
 	if err != nil {
-		return fmt.Errorf("failed to run instance: %w", err)
+		return "", fmt.Errorf("failed to run instance: %w", err)
 	}
 
 	if len(runResult.Instances) == 0 {
-		return fmt.Errorf("no instances were created")
+		return "", fmt.Errorf("no instances were created")
 	}
 
 	instanceID := *runResult.Instances[0].InstanceId
 	fmt.Printf("Instance launched! Instance ID: %s\n", instanceID)
 	fmt.Printf("Current state: %s\n", runResult.Instances[0].State.Name)
 
-	if err := WaitForInstanceRunning(ctx, client, instanceID); err != nil {
-		return err
-	}
-
-	describeInput := &awsec2.DescribeInstancesInput{
-		InstanceIds: []string{instanceID},
-	}
-	describeResult, err := client.DescribeInstances(ctx, describeInput)
-	if err != nil {
-		return fmt.Errorf("failed to describe instance: %w", err)
-	}
-
-	if len(describeResult.Reservations) > 0 && len(describeResult.Reservations[0].Instances) > 0 {
-		instance := describeResult.Reservations[0].Instances[0]
-		fmt.Printf("\n--- Instance Details ---\n")
-		fmt.Printf("Instance ID: %s\n", instanceID)
-		fmt.Printf("Public IP: %s\n", getPtrStringValue(instance.PublicIpAddress))
-		fmt.Printf("Private IP: %s\n", getPtrStringValue(instance.PrivateIpAddress))
-		fmt.Printf("Instance Type: %s\n", instance.InstanceType)
-		fmt.Printf("State: %s\n", instance.State.Name)
-	}
-
-	return nil
+	return instanceID, nil
 }
 
 func ListInstances(ctx context.Context, client EC2Client) error {
