@@ -30,3 +30,4 @@ func TestHealthHandler_Health(t *testing.T) {
 		t.Errorf("expected status 'ok', got %v", response.Status)
 	}
 }
+

@@ -10,6 +10,14 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 )
 
+type InstanceInfo struct {
+	InstanceID   string
+	State        string
+	InstanceType string
+	PublicIP     string
+	PrivateIP    string
+}
+
 func WaitForInstanceRunning(ctx context.Context, client EC2Client, instanceID string) error {
 	fmt.Println("Waiting for instance to be running...")
 	maxWaitTime := 5 * time.Minute
@@ -49,7 +57,7 @@ func WaitForInstanceRunning(ctx context.Context, client EC2Client, instanceID st
 	}
 }
 
-func CreateInstance(ctx context.Context, client EC2Client) (string, error) {
+func CreateInstance(ctx context.Context, client EC2Client) (InstanceInfo, error) {
 	fmt.Println("--- Creating EC2 Instance ---")
 
 	runInput := &awsec2.RunInstancesInput{
@@ -61,18 +69,26 @@ func CreateInstance(ctx context.Context, client EC2Client) (string, error) {
 
 	runResult, err := client.RunInstances(ctx, runInput)
 	if err != nil {
-		return "", fmt.Errorf("failed to run instance: %w", err)
+		return InstanceInfo{}, fmt.Errorf("failed to run instance: %w", err)
 	}
 
 	if len(runResult.Instances) == 0 {
-		return "", fmt.Errorf("no instances were created")
+		return InstanceInfo{}, fmt.Errorf("no instances were created")
 	}
 
-	instanceID := *runResult.Instances[0].InstanceId
-	fmt.Printf("Instance launched! Instance ID: %s\n", instanceID)
-	fmt.Printf("Current state: %s\n", runResult.Instances[0].State.Name)
+	instance := runResult.Instances[0]
+	info := InstanceInfo{
+		InstanceID:   getPtrStringValue(instance.InstanceId),
+		State:        string(instance.State.Name),
+		InstanceType: string(instance.InstanceType),
+		PublicIP:     getPtrStringValue(instance.PublicIpAddress),
+		PrivateIP:    getPtrStringValue(instance.PrivateIpAddress),
+	}
 
-	return instanceID, nil
+	fmt.Printf("Instance launched! Instance ID: %s\n", info.InstanceID)
+	fmt.Printf("Current state: %s\n", info.State)
+
+	return info, nil
 }
 
 func ListInstances(ctx context.Context, client EC2Client) error {
@@ -139,7 +155,7 @@ func DeleteInstance(ctx context.Context, client EC2Client, instanceID string) er
 
 func getPtrStringValue(ptr *string) string {
 	if ptr == nil {
-		return "N/A"
+		return ""
 	}
 	return *ptr
 }

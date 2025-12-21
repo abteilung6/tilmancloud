@@ -27,16 +27,16 @@ func main() {
 
 	switch command {
 	case "create":
-		instanceID, err := ec2.CreateInstance(ctx, ec2Client)
+		instanceInfo, err := ec2.CreateInstance(ctx, ec2Client)
 		if err != nil {
 			log.Fatalf("Create command failed: %v", err)
 		}
 
-		if err := ec2.WaitForInstanceRunning(ctx, ec2Client, instanceID); err != nil {
+		if err := ec2.WaitForInstanceRunning(ctx, ec2Client, instanceInfo.InstanceID); err != nil {
 			log.Fatalf("Failed to wait for instance: %v", err)
 		}
 
-		fmt.Printf("\n✓ Instance %s is now running!\n", instanceID)
+		fmt.Printf("\n✓ Instance %s is now running!\n", instanceInfo.InstanceID)
 	case "list":
 		if err := ec2.ListInstances(ctx, ec2Client); err != nil {
 			log.Fatalf("List command failed: %v", err)

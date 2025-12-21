@@ -17,3 +17,4 @@ generate-openapi-models: validate-spec
 		-o pkg/api/generated/models.go \
 		api/openapi.yaml
 	@echo "✓ Models generated successfully"
+

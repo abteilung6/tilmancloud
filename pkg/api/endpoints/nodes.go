@@ -21,17 +21,29 @@ func NewNodesHandler(ec2Client ec2.EC2Client) *NodesHandler {
 func (h *NodesHandler) CreateNode(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	instanceID, err := ec2.CreateInstance(ctx, h.EC2Client)
+	instanceInfo, err := ec2.CreateInstance(ctx, h.EC2Client)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
+	state := generated.NodeState(instanceInfo.State)
 	response := generated.Node{
-		Name: &instanceID,
+		Name:         instanceInfo.InstanceID,
+		State:        &state,
+		InstanceType: stringPtrOrNil(instanceInfo.InstanceType),
+		PublicIp:     stringPtrOrNil(instanceInfo.PublicIP),
+		PrivateIp:    stringPtrOrNil(instanceInfo.PrivateIP),
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(response)
+}
+
+func stringPtrOrNil(s string) *string {
+	if s == "" {
+		return nil
+	}
+	return &s
 }

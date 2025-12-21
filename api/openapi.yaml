@@ -45,8 +45,30 @@ components:
           example: "ok"
     Node:
       type: object
+      required:
+        - name
       properties:
         name:
           type: string
-          description: Node name
+          description: Node name (EC2 instance ID)
           example: "i-1234567890abcdef0"
+        state:
+          type: string
+          enum: [pending, running, stopping, stopped, shutting-down, terminated]
+          description: Current node state
+          example: "running"
+        instanceType:
+          type: string
+          description: EC2 instance type
+          example: "t2.micro"
+        publicIp:
+          type: string
+          nullable: true
+          description: Public IP address
+          example: "54.123.45.67"
+        privateIp:
+          type: string
+          nullable: true
+          description: Private IP address
+          example: "10.0.1.123"
+

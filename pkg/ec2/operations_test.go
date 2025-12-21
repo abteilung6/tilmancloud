@@ -14,15 +14,18 @@ import (
 func TestCreateInstance_Success(t *testing.T) {
 	ctx := context.Background()
 	expectedInstanceID := "i-1234567890abcdef0"
+	expectedState := types.InstanceStateNamePending
+	expectedInstanceType := types.InstanceTypeT2Micro
 
 	mockClient := &MockEC2Client{
 		RunInstancesFunc: func(ctx context.Context, params *awsec2.RunInstancesInput, optFns ...func(*awsec2.Options)) (*awsec2.RunInstancesOutput, error) {
 			return &awsec2.RunInstancesOutput{
 				Instances: []types.Instance{
 					{
-						InstanceId: aws.String(expectedInstanceID),
+						InstanceId:   aws.String(expectedInstanceID),
+						InstanceType: expectedInstanceType,
 						State: &types.InstanceState{
-							Name: types.InstanceStateNamePending,
+							Name: expectedState,
 						},
 					},
 				},
@@ -30,13 +33,19 @@ func TestCreateInstance_Success(t *testing.T) {
 		},
 	}
 
-	instanceID, err := CreateInstance(ctx, mockClient)
+	instanceInfo, err := CreateInstance(ctx, mockClient)
 
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
-	if instanceID != expectedInstanceID {
-		t.Errorf("expected instance ID %s, got %s", expectedInstanceID, instanceID)
+	if instanceInfo.InstanceID != expectedInstanceID {
+		t.Errorf("expected instance ID %s, got %s", expectedInstanceID, instanceInfo.InstanceID)
+	}
+	if instanceInfo.State != string(expectedState) {
+		t.Errorf("expected state %s, got %s", expectedState, instanceInfo.State)
+	}
+	if instanceInfo.InstanceType != string(expectedInstanceType) {
+		t.Errorf("expected instance type %s, got %s", expectedInstanceType, instanceInfo.InstanceType)
 	}
 }
 
@@ -50,13 +59,13 @@ func TestCreateInstance_RunInstancesError(t *testing.T) {
 		},
 	}
 
-	instanceID, err := CreateInstance(ctx, mockClient)
+	instanceInfo, err := CreateInstance(ctx, mockClient)
 
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
-	if instanceID != "" {
-		t.Errorf("expected empty instance ID on error, got %s", instanceID)
+	if instanceInfo.InstanceID != "" {
+		t.Errorf("expected empty instance ID on error, got %s", instanceInfo.InstanceID)
 	}
 	if !strings.Contains(err.Error(), "failed to run instance") {
 		t.Errorf("expected error message to contain 'failed to run instance', got %v", err)
