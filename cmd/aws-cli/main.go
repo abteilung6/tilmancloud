@@ -149,11 +149,34 @@ func cmdList(ctx context.Context, client *ec2.Client) error {
 	return nil
 }
 
+func cmdDelete(ctx context.Context, client *ec2.Client, instanceID string) error {
+	fmt.Printf("--- Deleting EC2 Instance: %s ---\n", instanceID)
+
+	terminateInput := &ec2.TerminateInstancesInput{
+		InstanceIds: []string{instanceID},
+	}
+
+	terminateResult, err := client.TerminateInstances(ctx, terminateInput)
+	if err != nil {
+		return fmt.Errorf("failed to terminate instance: %w", err)
+	}
+
+	if len(terminateResult.TerminatingInstances) == 0 {
+		return fmt.Errorf("no instances were terminated")
+	}
+
+	instanceState := terminateResult.TerminatingInstances[0]
+	fmt.Printf("Termination initiated for instance: %s\n", *instanceState.InstanceId)
+	fmt.Printf("Current state: %s -> %s\n", instanceState.PreviousState.Name, instanceState.CurrentState.Name)
+	fmt.Println("\nInstance termination in progress...")
+	return nil
+}
+
 func main() {
 	if len(os.Args) < 2 {
 		fmt.Fprintf(os.Stderr, "Error: command required\n")
 		fmt.Fprintf(os.Stderr, "Usage: %s <command>\n", os.Args[0])
-		fmt.Fprintf(os.Stderr, "Commands: create, list\n")
+		fmt.Fprintf(os.Stderr, "Commands: create, list, delete\n")
 		os.Exit(1)
 	}
 
@@ -173,6 +196,14 @@ func main() {
 	case "list":
 		if err := cmdList(ctx, ec2Client); err != nil {
 			log.Fatalf("List command failed: %v", err)
+		}
+	case "delete":
+		if len(os.Args) < 3 {
+			log.Fatal("Delete command requires instance ID. Usage: delete <instance-id>")
+		}
+		instanceID := os.Args[2]
+		if err := cmdDelete(ctx, ec2Client, instanceID); err != nil {
+			log.Fatalf("Delete command failed: %v", err)
 		}
 	default:
 		fmt.Fprintf(os.Stderr, "Unknown command: %s\n\n", command)
