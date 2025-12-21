@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/abteilung6/tilmancloud/pkg/api/generated"
 )
 
 func TestHealthHandler_Health(t *testing.T) {
@@ -19,12 +21,12 @@ func TestHealthHandler_Health(t *testing.T) {
 		t.Errorf("expected status code %d, got %d", http.StatusOK, w.Code)
 	}
 
-	var response HealthResponse
+	var response generated.Health
 	if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
 		t.Fatalf("failed to decode response: %v", err)
 	}
 
-	if response.Status != "ok" {
-		t.Errorf("expected status 'ok', got %s", response.Status)
+	if response.Status == nil || *response.Status != "ok" {
+		t.Errorf("expected status 'ok', got %v", response.Status)
 	}
 }
