@@ -1,26 +1,38 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"log"
 	"net/http"
 
+	"github.com/abteilung6/tilmancloud/pkg/api/generated"
+	"github.com/abteilung6/tilmancloud/pkg/ec2"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 )
 
 type Server struct {
-	Router *chi.Mux
+	Router    *chi.Mux
+	EC2Client ec2.EC2Client
 }
 
 type HealthResponse struct {
 	Status string `json:"status"`
 }
 
-func CreateNewServer() *Server {
+func CreateNewServer() (*Server, error) {
 	server := &Server{}
 	server.Router = chi.NewRouter()
-	return server
+
+	ctx := context.Background()
+	ec2Client, err := ec2.NewClient(ctx, "eu-central-1")
+	if err != nil {
+		return nil, err
+	}
+	server.EC2Client = ec2Client
+
+	return server, nil
 }
 
 func MountHandlers(server *Server) {
@@ -30,6 +42,7 @@ func MountHandlers(server *Server) {
 
 	// Routes
 	server.Router.Get("/health", healthHandler)
+	server.Router.Post("/nodes", server.createNodeHandler)
 }
 
 func healthHandler(w http.ResponseWriter, r *http.Request) {
@@ -42,8 +55,30 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
+func (s *Server) createNodeHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	instanceID, err := ec2.CreateInstance(ctx, s.EC2Client)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	response := generated.Node{
+		Name: &instanceID,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(response)
+}
+
 func main() {
-	server := CreateNewServer()
+	server, err := CreateNewServer()
+	if err != nil {
+		log.Fatalf("Failed to create server: %v", err)
+	}
+
 	MountHandlers(server)
 
 	port := ":8080"
