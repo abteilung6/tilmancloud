@@ -41,6 +41,33 @@ func (h *NodesHandler) CreateNode(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
+func (h *NodesHandler) ListNodes(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	instances, err := ec2.ListInstances(ctx, h.EC2Client)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	nodes := make([]generated.Node, 0, len(instances))
+	for _, instanceInfo := range instances {
+		state := generated.NodeState(instanceInfo.State)
+		node := generated.Node{
+			Name:         instanceInfo.InstanceID,
+			State:        &state,
+			InstanceType: stringPtrOrNil(instanceInfo.InstanceType),
+			PublicIp:     stringPtrOrNil(instanceInfo.PublicIP),
+			PrivateIp:    stringPtrOrNil(instanceInfo.PrivateIP),
+		}
+		nodes = append(nodes, node)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(nodes)
+}
+
 func stringPtrOrNil(s string) *string {
 	if s == "" {
 		return nil

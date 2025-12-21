@@ -91,43 +91,44 @@ func CreateInstance(ctx context.Context, client EC2Client) (InstanceInfo, error)
 	return info, nil
 }
 
-func ListInstances(ctx context.Context, client EC2Client) error {
+func ListInstances(ctx context.Context, client EC2Client) ([]InstanceInfo, error) {
 	fmt.Println("--- Listing EC2 Instances ---")
 
 	describeInput := &awsec2.DescribeInstancesInput{}
 	describeResult, err := client.DescribeInstances(ctx, describeInput)
 	if err != nil {
-		return fmt.Errorf("failed to describe instances: %w", err)
+		return nil, fmt.Errorf("failed to describe instances: %w", err)
 	}
 
-	totalInstances := 0
-	for _, reservation := range describeResult.Reservations {
-		totalInstances += len(reservation.Instances)
-	}
-
-	if totalInstances == 0 {
-		fmt.Println("No instances found.")
-		return nil
-	}
-
-	fmt.Printf("\nFound %d instance(s):\n\n", totalInstances)
-	fmt.Printf("%-20s %-15s %-18s %-18s %-12s\n", "Instance ID", "State", "Type", "Public IP", "Private IP")
-	fmt.Println("--------------------------------------------------------------------------------")
-
+	var instances []InstanceInfo
 	for _, reservation := range describeResult.Reservations {
 		for _, instance := range reservation.Instances {
-			instanceID := getPtrStringValue(instance.InstanceId)
-			state := string(instance.State.Name)
-			instanceType := string(instance.InstanceType)
-			publicIP := getPtrStringValue(instance.PublicIpAddress)
-			privateIP := getPtrStringValue(instance.PrivateIpAddress)
-
-			fmt.Printf("%-20s %-15s %-18s %-18s %-12s\n",
-				instanceID, state, instanceType, publicIP, privateIP)
+			info := InstanceInfo{
+				InstanceID:   getPtrStringValue(instance.InstanceId),
+				State:        string(instance.State.Name),
+				InstanceType: string(instance.InstanceType),
+				PublicIP:     getPtrStringValue(instance.PublicIpAddress),
+				PrivateIP:    getPtrStringValue(instance.PrivateIpAddress),
+			}
+			instances = append(instances, info)
 		}
 	}
 
-	return nil
+	if len(instances) == 0 {
+		fmt.Println("No instances found.")
+		return instances, nil
+	}
+
+	fmt.Printf("\nFound %d instance(s):\n\n", len(instances))
+	fmt.Printf("%-20s %-15s %-18s %-18s %-12s\n", "Instance ID", "State", "Type", "Public IP", "Private IP")
+	fmt.Println("--------------------------------------------------------------------------------")
+
+	for _, info := range instances {
+		fmt.Printf("%-20s %-15s %-18s %-18s %-12s\n",
+			info.InstanceID, info.State, info.InstanceType, info.PublicIP, info.PrivateIP)
+	}
+
+	return instances, nil
 }
 
 func DeleteInstance(ctx context.Context, client EC2Client, instanceID string) error {

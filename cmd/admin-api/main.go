@@ -28,6 +28,7 @@ func MountHandlers(server *Server, nodesHandler *endpoints.NodesHandler, healthH
 
 	// Routes
 	server.Router.Get("/health", healthHandler.Health)
+	server.Router.Get("/nodes", nodesHandler.ListNodes)
 	server.Router.Post("/nodes", nodesHandler.CreateNode)
 }
 

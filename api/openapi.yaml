@@ -22,6 +22,19 @@ paths:
               schema:
                 $ref: '#/components/schemas/Health'
   /nodes:
+    get:
+      operationId: listNodes
+      summary: List all nodes
+      description: Returns a list of all nodes (EC2 instances)
+      responses:
+        '200':
+          description: List of nodes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Node'
     post:
       operationId: createNode
       summary: Create a new node

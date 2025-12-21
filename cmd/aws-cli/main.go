@@ -38,9 +38,11 @@ func main() {
 
 		fmt.Printf("\n✓ Instance %s is now running!\n", instanceInfo.InstanceID)
 	case "list":
-		if err := ec2.ListInstances(ctx, ec2Client); err != nil {
+		instances, err := ec2.ListInstances(ctx, ec2Client)
+		if err != nil {
 			log.Fatalf("List command failed: %v", err)
 		}
+		_ = instances
 	case "delete":
 		if len(os.Args) < 3 {
 			log.Fatal("Delete command requires instance ID. Usage: delete <instance-id>")
