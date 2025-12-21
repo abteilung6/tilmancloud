@@ -13,6 +13,12 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 )
 
+type EC2Client interface {
+	RunInstances(ctx context.Context, params *ec2.RunInstancesInput, optFns ...func(*ec2.Options)) (*ec2.RunInstancesOutput, error)
+	DescribeInstances(ctx context.Context, params *ec2.DescribeInstancesInput, optFns ...func(*ec2.Options)) (*ec2.DescribeInstancesOutput, error)
+	TerminateInstances(ctx context.Context, params *ec2.TerminateInstancesInput, optFns ...func(*ec2.Options)) (*ec2.TerminateInstancesOutput, error)
+}
+
 func getEC2Client(ctx context.Context, region string) (*ec2.Client, error) {
 	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(region))
 	if err != nil {
@@ -23,7 +29,7 @@ func getEC2Client(ctx context.Context, region string) (*ec2.Client, error) {
 	return client, nil
 }
 
-func waitForInstanceRunning(ctx context.Context, client *ec2.Client, instanceID string) error {
+func waitForInstanceRunning(ctx context.Context, client EC2Client, instanceID string) error {
 	fmt.Println("Waiting for instance to be running...")
 	maxWaitTime := 5 * time.Minute
 	checkInterval := 10 * time.Second
@@ -62,7 +68,7 @@ func waitForInstanceRunning(ctx context.Context, client *ec2.Client, instanceID 
 	}
 }
 
-func cmdCreate(ctx context.Context, client *ec2.Client) error {
+func cmdCreate(ctx context.Context, client EC2Client) error {
 	fmt.Println("--- Creating EC2 Instance ---")
 
 	runInput := &ec2.RunInstancesInput{
@@ -110,7 +116,7 @@ func cmdCreate(ctx context.Context, client *ec2.Client) error {
 	return nil
 }
 
-func cmdList(ctx context.Context, client *ec2.Client) error {
+func cmdList(ctx context.Context, client EC2Client) error {
 	fmt.Println("--- Listing EC2 Instances ---")
 
 	describeInput := &ec2.DescribeInstancesInput{}
@@ -149,7 +155,7 @@ func cmdList(ctx context.Context, client *ec2.Client) error {
 	return nil
 }
 
-func cmdDelete(ctx context.Context, client *ec2.Client, instanceID string) error {
+func cmdDelete(ctx context.Context, client EC2Client, instanceID string) error {
 	fmt.Printf("--- Deleting EC2 Instance: %s ---\n", instanceID)
 
 	terminateInput := &ec2.TerminateInstancesInput{
