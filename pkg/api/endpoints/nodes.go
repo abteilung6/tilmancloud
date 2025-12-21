@@ -3,9 +3,11 @@ package endpoints
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"github.com/abteilung6/tilmancloud/pkg/api/generated"
 	"github.com/abteilung6/tilmancloud/pkg/ec2"
+	"github.com/go-chi/chi/v5"
 )
 
 type NodesHandler struct {
@@ -66,6 +68,28 @@ func (h *NodesHandler) ListNodes(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(nodes)
+}
+
+func (h *NodesHandler) DeleteNode(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	nodeId := chi.URLParam(r, "nodeId")
+
+	if nodeId == "" {
+		http.Error(w, "nodeId is required", http.StatusBadRequest)
+		return
+	}
+
+	err := ec2.DeleteInstance(ctx, h.EC2Client, nodeId)
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") || strings.Contains(err.Error(), "InvalidInstanceID") {
+			http.Error(w, "Node not found", http.StatusNotFound)
+			return
+		}
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func stringPtrOrNil(s string) *string {

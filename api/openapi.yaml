@@ -46,6 +46,26 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Node'
+  /nodes/{nodeId}:
+    delete:
+      operationId: deleteNode
+      summary: Delete a node
+      description: Deletes (terminates) a node by its ID
+      parameters:
+        - name: nodeId
+          in: path
+          required: true
+          description: The ID of the node to delete
+          schema:
+            type: string
+            example: "i-1234567890abcdef0"
+      responses:
+        '204':
+          description: Node deleted successfully
+        '404':
+          description: Node not found
+        '500':
+          description: Internal server error
 
 components:
   schemas:

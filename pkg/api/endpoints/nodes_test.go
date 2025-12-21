@@ -13,6 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	awsec2 "github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
+	"github.com/go-chi/chi/v5"
 )
 
 func TestNodesHandler_CreateNode(t *testing.T) {
@@ -277,6 +278,97 @@ func TestNodesHandler_ListNodes_Error(t *testing.T) {
 	w := httptest.NewRecorder()
 
 	handler.ListNodes(w, req)
+
+	if w.Code != http.StatusInternalServerError {
+		t.Errorf("expected status code %d, got %d", http.StatusInternalServerError, w.Code)
+	}
+}
+
+func TestNodesHandler_DeleteNode(t *testing.T) {
+	expectedInstanceID := "i-1234567890abcdef0"
+
+	mockClient := &ec2.MockEC2Client{
+		TerminateInstancesFunc: func(ctx context.Context, params *awsec2.TerminateInstancesInput, optFns ...func(*awsec2.Options)) (*awsec2.TerminateInstancesOutput, error) {
+			if len(params.InstanceIds) == 0 || params.InstanceIds[0] != expectedInstanceID {
+				return nil, fmt.Errorf("InvalidInstanceID.NotFound")
+			}
+			return &awsec2.TerminateInstancesOutput{
+				TerminatingInstances: []types.InstanceStateChange{
+					{
+						InstanceId: aws.String(expectedInstanceID),
+						PreviousState: &types.InstanceState{
+							Name: types.InstanceStateNameRunning,
+						},
+						CurrentState: &types.InstanceState{
+							Name: types.InstanceStateNameShuttingDown,
+						},
+					},
+				},
+			}, nil
+		},
+	}
+
+	handler := NewNodesHandler(mockClient)
+
+	req := httptest.NewRequest("DELETE", "/nodes/"+expectedInstanceID, nil)
+	rctx := chi.NewRouteContext()
+	rctx.URLParams.Add("nodeId", expectedInstanceID)
+	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
+	w := httptest.NewRecorder()
+
+	handler.DeleteNode(w, req)
+
+	if w.Code != http.StatusNoContent {
+		t.Errorf("expected status code %d, got %d", http.StatusNoContent, w.Code)
+	}
+
+	if w.Body.Len() != 0 {
+		t.Errorf("expected empty body for 204 response, got %s", w.Body.String())
+	}
+}
+
+func TestNodesHandler_DeleteNode_NotFound(t *testing.T) {
+	expectedInstanceID := "i-nonexistent"
+
+	mockClient := &ec2.MockEC2Client{
+		TerminateInstancesFunc: func(ctx context.Context, params *awsec2.TerminateInstancesInput, optFns ...func(*awsec2.Options)) (*awsec2.TerminateInstancesOutput, error) {
+			return nil, fmt.Errorf("InvalidInstanceID.NotFound: The instance ID '%s' does not exist", expectedInstanceID)
+		},
+	}
+
+	handler := NewNodesHandler(mockClient)
+
+	req := httptest.NewRequest("DELETE", "/nodes/"+expectedInstanceID, nil)
+	rctx := chi.NewRouteContext()
+	rctx.URLParams.Add("nodeId", expectedInstanceID)
+	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
+	w := httptest.NewRecorder()
+
+	handler.DeleteNode(w, req)
+
+	if w.Code != http.StatusNotFound {
+		t.Errorf("expected status code %d, got %d", http.StatusNotFound, w.Code)
+	}
+}
+
+func TestNodesHandler_DeleteNode_Error(t *testing.T) {
+	expectedInstanceID := "i-1234567890abcdef0"
+
+	mockClient := &ec2.MockEC2Client{
+		TerminateInstancesFunc: func(ctx context.Context, params *awsec2.TerminateInstancesInput, optFns ...func(*awsec2.Options)) (*awsec2.TerminateInstancesOutput, error) {
+			return nil, fmt.Errorf("AWS API error: insufficient permissions")
+		},
+	}
+
+	handler := NewNodesHandler(mockClient)
+
+	req := httptest.NewRequest("DELETE", "/nodes/"+expectedInstanceID, nil)
+	rctx := chi.NewRouteContext()
+	rctx.URLParams.Add("nodeId", expectedInstanceID)
+	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
+	w := httptest.NewRecorder()
+
+	handler.DeleteNode(w, req)
 
 	if w.Code != http.StatusInternalServerError {
 		t.Errorf("expected status code %d, got %d", http.StatusInternalServerError, w.Code)

@@ -30,6 +30,7 @@ func MountHandlers(server *Server, nodesHandler *endpoints.NodesHandler, healthH
 	server.Router.Get("/health", healthHandler.Health)
 	server.Router.Get("/nodes", nodesHandler.ListNodes)
 	server.Router.Post("/nodes", nodesHandler.CreateNode)
+	server.Router.Delete("/nodes/{nodeId}", nodesHandler.DeleteNode)
 }
 
 func main() {
