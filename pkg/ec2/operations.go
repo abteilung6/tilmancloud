@@ -3,6 +3,7 @@ package ec2
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -19,13 +20,14 @@ type InstanceInfo struct {
 }
 
 func WaitForInstanceRunning(ctx context.Context, client EC2Client, instanceID string) error {
-	fmt.Println("Waiting for instance to be running...")
+	slog.Info("Waiting for instance to be running", "instance_id", instanceID)
 	maxWaitTime := 5 * time.Minute
 	checkInterval := 10 * time.Second
 	startTime := time.Now()
 
 	for {
 		if time.Since(startTime) > maxWaitTime {
+			slog.Error("Timeout waiting for instance to start", "instance_id", instanceID, "timeout", maxWaitTime)
 			return fmt.Errorf("timeout waiting for instance to start")
 		}
 
@@ -34,6 +36,7 @@ func WaitForInstanceRunning(ctx context.Context, client EC2Client, instanceID st
 		}
 		describeResult, err := client.DescribeInstances(ctx, describeInput)
 		if err != nil {
+			slog.Error("Failed to describe instance", "instance_id", instanceID, "error", err)
 			return fmt.Errorf("failed to describe instance: %w", err)
 		}
 
@@ -41,14 +44,15 @@ func WaitForInstanceRunning(ctx context.Context, client EC2Client, instanceID st
 			instance := describeResult.Reservations[0].Instances[0]
 			state := instance.State.Name
 
-			fmt.Printf("  Current state: %s\n", state)
+			slog.Debug("Instance state check", "instance_id", instanceID, "state", state)
 
 			if state == types.InstanceStateNameRunning {
-				fmt.Printf("✓ Instance is now running!\n")
+				slog.Info("Instance is now running", "instance_id", instanceID)
 				return nil
 			}
 
 			if state == types.InstanceStateNameTerminated || state == types.InstanceStateNameStopped {
+				slog.Error("Instance entered invalid state", "instance_id", instanceID, "state", state)
 				return fmt.Errorf("instance entered %s state, failed to start", state)
 			}
 		}
@@ -58,7 +62,7 @@ func WaitForInstanceRunning(ctx context.Context, client EC2Client, instanceID st
 }
 
 func CreateInstance(ctx context.Context, client EC2Client) (InstanceInfo, error) {
-	fmt.Println("--- Creating EC2 Instance ---")
+	slog.Info("Creating EC2 instance")
 
 	runInput := &awsec2.RunInstancesInput{
 		ImageId:      aws.String("ami-004e960cde33f9146"),
@@ -69,10 +73,12 @@ func CreateInstance(ctx context.Context, client EC2Client) (InstanceInfo, error)
 
 	runResult, err := client.RunInstances(ctx, runInput)
 	if err != nil {
+		slog.Error("Failed to run instance", "error", err)
 		return InstanceInfo{}, fmt.Errorf("failed to run instance: %w", err)
 	}
 
 	if len(runResult.Instances) == 0 {
+		slog.Error("No instances were created")
 		return InstanceInfo{}, fmt.Errorf("no instances were created")
 	}
 
@@ -85,18 +91,21 @@ func CreateInstance(ctx context.Context, client EC2Client) (InstanceInfo, error)
 		PrivateIP:    getPtrStringValue(instance.PrivateIpAddress),
 	}
 
-	fmt.Printf("Instance launched! Instance ID: %s\n", info.InstanceID)
-	fmt.Printf("Current state: %s\n", info.State)
+	slog.Info("Instance created successfully",
+		"instance_id", info.InstanceID,
+		"state", info.State,
+		"instance_type", info.InstanceType)
 
 	return info, nil
 }
 
 func ListInstances(ctx context.Context, client EC2Client) ([]InstanceInfo, error) {
-	fmt.Println("--- Listing EC2 Instances ---")
+	slog.Debug("Listing EC2 instances")
 
 	describeInput := &awsec2.DescribeInstancesInput{}
 	describeResult, err := client.DescribeInstances(ctx, describeInput)
 	if err != nil {
+		slog.Error("Failed to describe instances", "error", err)
 		return nil, fmt.Errorf("failed to describe instances: %w", err)
 	}
 
@@ -114,25 +123,12 @@ func ListInstances(ctx context.Context, client EC2Client) ([]InstanceInfo, error
 		}
 	}
 
-	if len(instances) == 0 {
-		fmt.Println("No instances found.")
-		return instances, nil
-	}
-
-	fmt.Printf("\nFound %d instance(s):\n\n", len(instances))
-	fmt.Printf("%-20s %-15s %-18s %-18s %-12s\n", "Instance ID", "State", "Type", "Public IP", "Private IP")
-	fmt.Println("--------------------------------------------------------------------------------")
-
-	for _, info := range instances {
-		fmt.Printf("%-20s %-15s %-18s %-18s %-12s\n",
-			info.InstanceID, info.State, info.InstanceType, info.PublicIP, info.PrivateIP)
-	}
-
+	slog.Info("Listed instances", "count", len(instances))
 	return instances, nil
 }
 
 func DeleteInstance(ctx context.Context, client EC2Client, instanceID string) error {
-	fmt.Printf("--- Deleting EC2 Instance: %s ---\n", instanceID)
+	slog.Info("Deleting EC2 instance", "instance_id", instanceID)
 
 	terminateInput := &awsec2.TerminateInstancesInput{
 		InstanceIds: []string{instanceID},
@@ -140,17 +136,21 @@ func DeleteInstance(ctx context.Context, client EC2Client, instanceID string) er
 
 	terminateResult, err := client.TerminateInstances(ctx, terminateInput)
 	if err != nil {
+		slog.Error("Failed to terminate instance", "instance_id", instanceID, "error", err)
 		return fmt.Errorf("failed to terminate instance: %w", err)
 	}
 
 	if len(terminateResult.TerminatingInstances) == 0 {
+		slog.Error("No instances were terminated", "instance_id", instanceID)
 		return fmt.Errorf("no instances were terminated")
 	}
 
 	instanceState := terminateResult.TerminatingInstances[0]
-	fmt.Printf("Termination initiated for instance: %s\n", *instanceState.InstanceId)
-	fmt.Printf("Current state: %s -> %s\n", instanceState.PreviousState.Name, instanceState.CurrentState.Name)
-	fmt.Println("\nInstance termination in progress...")
+	slog.Info("Instance termination initiated",
+		"instance_id", *instanceState.InstanceId,
+		"previous_state", instanceState.PreviousState.Name,
+		"current_state", instanceState.CurrentState.Name)
+
 	return nil
 }
 
