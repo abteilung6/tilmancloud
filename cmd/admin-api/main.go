@@ -9,6 +9,7 @@ import (
 	"github.com/abteilung6/tilmancloud/pkg/ec2"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/cors"
 )
 
 type Server struct {
@@ -25,6 +26,15 @@ func MountHandlers(server *Server, nodesHandler *endpoints.NodesHandler, healthH
 	// Middleware
 	server.Router.Use(middleware.Logger)
 	server.Router.Use(middleware.Recoverer)
+
+	server.Router.Use(cors.Handler(cors.Options{
+		AllowedOrigins:   []string{"http://localhost:5173"},
+		AllowedMethods:   []string{"GET", "POST", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type"},
+		ExposedHeaders:   []string{"Link"},
+		AllowCredentials: true,
+		MaxAge:           300,
+	}))
 
 	// Routes
 	server.Router.Get("/health", healthHandler.Health)
