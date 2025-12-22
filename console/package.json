@@ -11,7 +11,8 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "generate-api": "openapi-generator-cli generate -g typescript-axios -i ../api/openapi.yaml -o ./src/lib/api --additional-properties=npmName=@tilmancloud/api-client,npmVersion=1.0.0,supportsES6=true,withSeparateModelsAndApi=true,modelPackage=models,apiPackage=services"
   },
   "dependencies": {
     "react": "^19.2.0",
@@ -19,6 +20,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
+    "@openapitools/openapi-generator-cli": "^2.26.0",
     "@types/node": "^24.10.1",
     "@types/react": "^19.2.5",
     "@types/react-dom": "^19.2.3",

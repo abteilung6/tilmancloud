@@ -1,4 +1,4 @@
-.PHONY: generate-openapi-models validate-spec frontend-format frontend-lint frontend-lint-fix frontend-type-check frontend-check
+.PHONY: generate-go-models generate-ts-client validate-spec frontend-format frontend-lint frontend-lint-fix frontend-type-check frontend-check
 
 OAPI_CODEGEN := $(shell which oapi-codegen || echo $(HOME)/go/bin/oapi-codegen)
 
@@ -9,14 +9,14 @@ validate-spec:
 		exit 1; \
 	fi
 
-generate-openapi-models: validate-spec
+generate-go-models: validate-spec
 	@echo "Generating Go models from OpenAPI spec..."
 	@mkdir -p pkg/api/generated
 	@$(OAPI_CODEGEN) -generate types \
 		-package generated \
 		-o pkg/api/generated/models.go \
 		api/openapi.yaml
-	@echo "✓ Models generated successfully"
+	@echo "✓ Go models generated successfully"
 
 # Frontend formatting and linting
 frontend-format:
@@ -43,4 +43,11 @@ frontend-check: frontend-type-check frontend-lint
 	@echo "Running format check..."
 	@cd console && npm run format:check
 	@echo "✓ All frontend checks passed"
+
+# TypeScript API Client Generation
+generate-ts-client:
+	@echo "Generating TypeScript API client from OpenAPI spec..."
+	@cd console && npm run generate-api
+	@echo "✓ TypeScript API client generated successfully"
+
 
