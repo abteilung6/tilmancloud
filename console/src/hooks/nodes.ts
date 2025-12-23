@@ -1,12 +1,28 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
 
-export const useNodes = () => {
+const QUERY_KEY_NODES = 'nodes'
+
+export const useNodesQuery = () => {
   return useQuery({
-    queryKey: ['nodes'],
+    queryKey: [QUERY_KEY_NODES],
     queryFn: async () => {
       const response = await apiClient.listNodes()
       return response.data
+    },
+  })
+}
+
+export const useCreateNode = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async () => {
+      const response = await apiClient.createNode()
+      return response.data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEY_NODES] })
     },
   })
 }

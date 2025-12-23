@@ -1,10 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { renderWithQuery, screen, mockAxiosResponse } from '@/test/utils'
+import { renderWithQuery, screen, mockAxiosResponse, waitFor } from '@/test/utils'
+import userEvent from '@testing-library/user-event'
 import ListNodesPage from './ListNodesPage'
 import { apiClient, NodeStateEnum } from '@/lib/api-client'
 import type { Node } from '@/lib/api-client'
 
-const mockNodes: Node[] = [
+const defaultedListNodes: Node[] = [
   {
     name: 'i-1234567890abcdef0',
     state: NodeStateEnum.Running,
@@ -21,14 +22,31 @@ const mockNodes: Node[] = [
   },
 ]
 
+const defaultedCreateNode: Node = {
+  name: 'i-new1234567890abcdef',
+  state: NodeStateEnum.Pending,
+  instanceType: 't2.micro',
+  publicIp: null,
+  privateIp: '10.0.1.125',
+}
+
 describe('ListNodesPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })
 
   const customRender = () => {
-    vi.spyOn(apiClient, 'listNodes').mockResolvedValue(mockAxiosResponse({ data: mockNodes }))
-    return renderWithQuery(<ListNodesPage />)
+    vi.spyOn(apiClient, 'listNodes').mockResolvedValue(
+      mockAxiosResponse({ data: defaultedListNodes })
+    )
+    const createNodeSpy = vi
+      .spyOn(apiClient, 'createNode')
+      .mockResolvedValue(mockAxiosResponse({ data: defaultedCreateNode, status: 201 }))
+    const user = userEvent.setup()
+
+    renderWithQuery(<ListNodesPage />)
+
+    return { createNodeSpy, user }
   }
 
   it('renders nodes in a table', async () => {
@@ -57,5 +75,17 @@ describe('ListNodesPage', () => {
     expect(secondDataRow).toHaveTextContent('pending')
     expect(secondDataRow).toHaveTextContent('N/A')
     expect(secondDataRow).toHaveTextContent('10.0.1.124')
+  })
+
+  it('creates a node when Add node button is clicked', async () => {
+    const { createNodeSpy, user } = customRender()
+
+    await screen.findByRole('table')
+    const addButton = screen.getByRole('button', { name: 'Add node' })
+    await user.click(addButton)
+
+    await waitFor(() => {
+      expect(createNodeSpy).toHaveBeenCalledOnce()
+    })
   })
 })

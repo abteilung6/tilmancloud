@@ -1,4 +1,4 @@
-import { useNodes } from '@/hooks/nodes'
+import { useNodesQuery, useCreateNode } from '@/hooks/nodes'
 import {
   Table,
   TableBody,
@@ -8,6 +8,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { NodeStateEnum } from '@/lib/api-client'
 
 const getStateBadgeVariant = (
@@ -31,54 +32,67 @@ const getStateBadgeVariant = (
 }
 
 const ListNodesPage: React.FC = () => {
-  const { data: nodes, isLoading, isError, error } = useNodes()
+  const useNodesQueryResult = useNodesQuery()
+  const nodes = useNodesQueryResult.data ?? []
+  const createNodeMutation = useCreateNode()
 
-  if (isLoading) {
-    return <div className="p-8">Loading...</div>
-  }
-
-  if (isError) {
-    return (
-      <div className="p-8 text-destructive">
-        Error: {error instanceof Error ? error.message : 'Failed to fetch nodes'}
-      </div>
-    )
-  }
-
-  if (!nodes || nodes.length === 0) {
-    return <div className="p-8">No nodes found</div>
+  const handleCreateNode = () => {
+    createNodeMutation.mutate()
   }
 
   return (
     <div className="p-8">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>State</TableHead>
-            <TableHead>Instance Type</TableHead>
-            <TableHead>Public IP</TableHead>
-            <TableHead>Private IP</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {nodes.map(node => (
-            <TableRow key={node.name}>
-              <TableCell className="font-medium">{node.name}</TableCell>
-              <TableCell>
-                {node.state ? (
-                  <Badge variant={getStateBadgeVariant(node.state)}>{node.state}</Badge>
-                ) : (
-                  <Badge variant="outline">N/A</Badge>
-                )}
-              </TableCell>
-              <TableCell>{node.instanceType || 'N/A'}</TableCell>
-              <TableCell>{node.publicIp || 'N/A'}</TableCell>
-              <TableCell>{node.privateIp || 'N/A'}</TableCell>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-semibold">Nodes</h1>
+        <Button onClick={handleCreateNode}>Add node</Button>
+      </div>
+      {useNodesQueryResult.isError && (
+        <div className="text-destructive">
+          Error:{' '}
+          {useNodesQueryResult.error instanceof Error
+            ? useNodesQueryResult.error.message
+            : 'Failed to fetch nodes'}
+        </div>
+      )}
+      {createNodeMutation.isError && (
+        <div className="text-destructive">
+          Error:{' '}
+          {createNodeMutation.error instanceof Error
+            ? createNodeMutation.error.message
+            : 'Failed to create node'}
+        </div>
+      )}
+      {useNodesQueryResult.isLoading && <div>Loading...</div>}
+      {nodes.length > 0 && (
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Name</TableHead>
+              <TableHead>State</TableHead>
+              <TableHead>Instance Type</TableHead>
+              <TableHead>Public IP</TableHead>
+              <TableHead>Private IP</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {nodes.map(node => (
+              <TableRow key={node.name}>
+                <TableCell className="font-medium">{node.name}</TableCell>
+                <TableCell>
+                  {node.state ? (
+                    <Badge variant={getStateBadgeVariant(node.state)}>{node.state}</Badge>
+                  ) : (
+                    <Badge variant="outline">N/A</Badge>
+                  )}
+                </TableCell>
+                <TableCell>{node.instanceType || 'N/A'}</TableCell>
+                <TableCell>{node.publicIp || 'N/A'}</TableCell>
+                <TableCell>{node.privateIp || 'N/A'}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      )}
     </div>
   )
 }

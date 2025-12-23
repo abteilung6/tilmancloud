@@ -7,6 +7,7 @@ vi.mock('@/lib/api-client', async () => {
     ...actual,
     apiClient: {
       listNodes: vi.fn(),
+      createNode: vi.fn(),
     },
   }
 })
