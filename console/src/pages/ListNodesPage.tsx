@@ -1,6 +1,6 @@
-import { useNodes } from './hooks/nodes'
+import { useNodes } from '@/hooks/nodes'
 
-const App: React.FC = () => {
+const ListNodesPage: React.FC = () => {
   const { data: nodes, isLoading, isError, error } = useNodes()
 
   if (isLoading) {
@@ -41,4 +41,4 @@ const App: React.FC = () => {
   )
 }
 
-export default App
+export default ListNodesPage
