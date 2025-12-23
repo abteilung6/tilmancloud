@@ -1,34 +1,14 @@
-import { useState, useEffect } from 'react'
-import { apiClient, type Node } from './lib/api-client'
+import { useNodes } from './hooks/nodes'
 
 const App: React.FC = () => {
-  const [nodes, setNodes] = useState<Node[] | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const { data: nodes, isLoading, isError, error } = useNodes()
 
-  useEffect(() => {
-    const fetchNodes = async () => {
-      try {
-        setLoading(true)
-        setError(null)
-        const response = await apiClient.listNodes()
-        setNodes(response.data)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch nodes')
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchNodes()
-  }, [])
-
-  if (loading) {
+  if (isLoading) {
     return <div>Loading...</div>
   }
 
-  if (error) {
-    return <div>Error: {error}</div>
+  if (isError) {
+    return <div>Error: {error instanceof Error ? error.message : 'Failed to fetch nodes'}</div>
   }
 
   if (!nodes || nodes.length === 0) {

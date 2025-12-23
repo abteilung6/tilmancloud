@@ -15,6 +15,7 @@
     "generate-api": "openapi-generator-cli generate -g typescript-axios -i ../api/openapi.yaml -o ./src/lib/api --additional-properties=npmName=@tilmancloud/api-client,npmVersion=1.0.0,supportsES6=true,withSeparateModelsAndApi=true,modelPackage=models,apiPackage=services"
   },
   "dependencies": {
+    "@tanstack/react-query": "^5.90.12",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },
