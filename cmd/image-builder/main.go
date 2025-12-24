@@ -23,5 +23,13 @@ func runBuild() {
 		slog.Error("Failed to download image", "error", err)
 		os.Exit(1)
 	}
-	fmt.Println("Image downloaded successfully")
+
+	compressedPath := downloader.GetCompressedPath(cloud_base_image_url)
+	rawPath, err := downloader.Decompress(ctx, compressedPath)
+	if err != nil {
+		slog.Error("Failed to decompress image", "error", err)
+		os.Exit(1)
+	}
+
+	fmt.Printf("Image ready: %s\n", rawPath)
 }
