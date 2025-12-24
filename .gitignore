@@ -1,2 +1,6 @@
 .env
 /tmp
+/build
+/build/images
+/build/images/*.raw.xz
+/build/images/*.raw.xz.part
