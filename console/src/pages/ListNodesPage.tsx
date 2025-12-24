@@ -9,7 +9,8 @@ import {
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { NodeStateEnum } from '@/lib/api-client'
+import { NodeStateEnum, type Node } from '@/lib/api-client'
+import { useReactTable, getCoreRowModel, type ColumnDef, flexRender } from '@tanstack/react-table'
 
 const getStateBadgeVariant = (
   state?: NodeStateEnum
@@ -31,10 +32,61 @@ const getStateBadgeVariant = (
   }
 }
 
+const columns: ColumnDef<Node>[] = [
+  {
+    accessorKey: 'name',
+    header: 'Name',
+    cell: ({ row }) => <div className="font-medium">{row.getValue('name')}</div>,
+  },
+  {
+    accessorKey: 'state',
+    header: 'State',
+    cell: ({ row }) => {
+      const state = row.getValue<NodeStateEnum | undefined>('state')
+      return state ? (
+        <Badge variant={getStateBadgeVariant(state)}>{state}</Badge>
+      ) : (
+        <Badge variant="outline">N/A</Badge>
+      )
+    },
+  },
+  {
+    accessorKey: 'instanceType',
+    header: 'Instance Type',
+    cell: ({ row }) => {
+      const instanceType = row.getValue<string | undefined>('instanceType')
+      return <div>{instanceType || 'N/A'}</div>
+    },
+  },
+  {
+    accessorKey: 'publicIp',
+    header: 'Public IP',
+    cell: ({ row }) => {
+      const publicIp = row.getValue<string | null | undefined>('publicIp')
+      return <div>{publicIp || 'N/A'}</div>
+    },
+  },
+  {
+    accessorKey: 'privateIp',
+    header: 'Private IP',
+    cell: ({ row }) => {
+      const privateIp = row.getValue<string | null | undefined>('privateIp')
+      return <div>{privateIp || 'N/A'}</div>
+    },
+  },
+]
+
 const ListNodesPage: React.FC = () => {
   const useNodesQueryResult = useNodesQuery()
-  const nodes = useNodesQueryResult.data ?? []
+  const nodes = useNodesQueryResult.data
   const createNodeMutation = useCreateNode()
+
+  // eslint-disable-next-line react-hooks/incompatible-library
+  const table = useReactTable({
+    data: nodes ?? [],
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+  })
 
   const handleCreateNode = () => {
     createNodeMutation.mutate()
@@ -63,31 +115,29 @@ const ListNodesPage: React.FC = () => {
         </div>
       )}
       {useNodesQueryResult.isLoading && <div>Loading...</div>}
-      {nodes.length > 0 && (
+      {nodes !== undefined && (
         <Table>
           <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>State</TableHead>
-              <TableHead>Instance Type</TableHead>
-              <TableHead>Public IP</TableHead>
-              <TableHead>Private IP</TableHead>
-            </TableRow>
+            {table.getHeaderGroups().map(headerGroup => (
+              <TableRow key={headerGroup.id}>
+                {headerGroup.headers.map(header => (
+                  <TableHead key={header.id}>
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(header.column.columnDef.header, header.getContext())}
+                  </TableHead>
+                ))}
+              </TableRow>
+            ))}
           </TableHeader>
           <TableBody>
-            {nodes.map(node => (
-              <TableRow key={node.name}>
-                <TableCell className="font-medium">{node.name}</TableCell>
-                <TableCell>
-                  {node.state ? (
-                    <Badge variant={getStateBadgeVariant(node.state)}>{node.state}</Badge>
-                  ) : (
-                    <Badge variant="outline">N/A</Badge>
-                  )}
-                </TableCell>
-                <TableCell>{node.instanceType || 'N/A'}</TableCell>
-                <TableCell>{node.publicIp || 'N/A'}</TableCell>
-                <TableCell>{node.privateIp || 'N/A'}</TableCell>
+            {table.getRowModel().rows.map(row => (
+              <TableRow key={row.id}>
+                {row.getVisibleCells().map(cell => (
+                  <TableCell key={cell.id}>
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  </TableCell>
+                ))}
               </TableRow>
             ))}
           </TableBody>
