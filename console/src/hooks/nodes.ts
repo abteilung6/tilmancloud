@@ -26,3 +26,16 @@ export const useCreateNode = () => {
     },
   })
 }
+
+export const useDeleteNode = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (nodeId: string) => {
+      await apiClient.deleteNode(nodeId)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEY_NODES] })
+    },
+  })
+}

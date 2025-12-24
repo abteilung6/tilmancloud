@@ -1,4 +1,4 @@
-import { useNodesQuery, useCreateNode } from '@/hooks/nodes'
+import { useNodesQuery, useCreateNode, useDeleteNode } from '@/hooks/nodes'
 import {
   Table,
   TableBody,
@@ -9,6 +9,13 @@ import {
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { MoreHorizontal } from 'lucide-react'
 import { NodeStateEnum, type Node } from '@/lib/api-client'
 import { useReactTable, getCoreRowModel, type ColumnDef, flexRender } from '@tanstack/react-table'
 
@@ -30,6 +37,29 @@ const getStateBadgeVariant = (
     default:
       return 'outline'
   }
+}
+
+const ActionsCell: React.FC<{ node: Node }> = ({ node }) => {
+  const deleteNodeMutation = useDeleteNode()
+
+  const handleDelete = () => {
+    deleteNodeMutation.mutate(node.name)
+  }
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon">
+          <MoreHorizontal className="h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem className="text-destructive" onClick={handleDelete}>
+          Delete
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
 }
 
 const columns: ColumnDef<Node>[] = [
@@ -73,6 +103,11 @@ const columns: ColumnDef<Node>[] = [
       const privateIp = row.getValue<string | null | undefined>('privateIp')
       return <div>{privateIp || 'N/A'}</div>
     },
+  },
+  {
+    id: 'actions',
+    header: '',
+    cell: ({ row }) => <ActionsCell node={row.original} />,
   },
 ]
 

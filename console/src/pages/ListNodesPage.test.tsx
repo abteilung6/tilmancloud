@@ -42,11 +42,14 @@ describe('ListNodesPage', () => {
     const createNodeSpy = vi
       .spyOn(apiClient, 'createNode')
       .mockResolvedValue(mockAxiosResponse({ data: defaultedCreateNode, status: 201 }))
+    const deleteNodeSpy = vi
+      .spyOn(apiClient, 'deleteNode')
+      .mockResolvedValue(mockAxiosResponse({ status: 204 }))
     const user = userEvent.setup()
 
     renderWithQuery(<ListNodesPage />)
 
-    return { createNodeSpy, user }
+    return { createNodeSpy, deleteNodeSpy, user }
   }
 
   it('renders nodes in a table', async () => {
@@ -86,6 +89,42 @@ describe('ListNodesPage', () => {
 
     await waitFor(() => {
       expect(createNodeSpy).toHaveBeenCalledOnce()
+    })
+  })
+
+  it('renders actions dropdown in each row', async () => {
+    customRender()
+
+    await screen.findByRole('table')
+
+    const actionButtons = screen.getAllByRole('button', { name: '' })
+    const dropdownButtons = actionButtons.filter(button => {
+      const svg = button.querySelector('svg')
+      return svg !== null
+    })
+
+    expect(dropdownButtons.length).toBeGreaterThan(0)
+  })
+
+  it('deletes a node when delete is clicked', async () => {
+    const { deleteNodeSpy, user } = customRender()
+
+    await screen.findByRole('table')
+
+    const actionButtons = screen.getAllByRole('button', { name: '' })
+    const firstDropdownButton = actionButtons.find(button => {
+      const svg = button.querySelector('svg')
+      return svg !== null
+    })
+
+    expect(firstDropdownButton).toBeInTheDocument()
+    await user.click(firstDropdownButton!)
+
+    const deleteMenuItem = await screen.findByRole('menuitem', { name: 'Delete' })
+    await user.click(deleteMenuItem)
+
+    await waitFor(() => {
+      expect(deleteNodeSpy).toHaveBeenCalledWith('i-1234567890abcdef0')
     })
   })
 })
