@@ -1,4 +1,4 @@
-.PHONY: generate-go-models generate-ts-client validate-spec frontend-format frontend-lint frontend-lint-fix frontend-type-check frontend-check
+.PHONY: generate-go-models generate-ts-client validate-spec frontend-format frontend-lint frontend-lint-fix frontend-type-check frontend-check run-admin-api run-frontend
 
 OAPI_CODEGEN := $(shell which oapi-codegen || echo $(HOME)/go/bin/oapi-codegen)
 
@@ -49,5 +49,16 @@ generate-ts-client:
 	@echo "Generating TypeScript API client from OpenAPI spec..."
 	@cd console && npm run generate-api
 	@echo "✓ TypeScript API client generated successfully"
+
+# Server commands
+run-admin-api:
+	@echo "Starting API server on http://localhost:8080"
+	@echo "Press Ctrl+C to stop"
+	@go run cmd/admin-api/main.go
+
+run-frontend:
+	@echo "Starting frontend development server..."
+	@echo "Press Ctrl+C to stop"
+	@cd console && npm run dev
 
 
