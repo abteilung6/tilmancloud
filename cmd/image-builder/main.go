@@ -31,5 +31,29 @@ func runBuild() {
 		os.Exit(1)
 	}
 
-	fmt.Printf("Image ready: %s\n", rawPath)
+	bucket := os.Getenv("AWS_S3_BUCKET")
+	if bucket == "" {
+		slog.Error("AWS_S3_BUCKET environment variable not set")
+		os.Exit(1)
+	}
+
+	region := os.Getenv("AWS_REGION")
+	if region == "" {
+		region = "eu-central-1"
+	}
+
+	uploader, err := image.NewS3Uploader(ctx, bucket, region)
+	if err != nil {
+		slog.Error("Failed to create S3 uploader", "error", err)
+		os.Exit(1)
+	}
+
+	s3Key := image.GenerateS3Key(rawPath)
+	err = uploader.Upload(ctx, rawPath, s3Key)
+	if err != nil {
+		slog.Error("Failed to upload image to S3", "error", err)
+		os.Exit(1)
+	}
+
+	fmt.Printf("Image uploaded to S3: %s\n", uploader.GetS3URL(s3Key))
 }
