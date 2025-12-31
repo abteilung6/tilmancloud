@@ -54,6 +54,21 @@ func runBuild() {
 		slog.Error("Failed to upload image to S3", "error", err)
 		os.Exit(1)
 	}
-
 	fmt.Printf("Image uploaded to S3: %s\n", uploader.GetS3URL(s3Key))
+
+	importer, err := image.NewImporter(ctx, region)
+	if err != nil {
+		slog.Error("Failed to create importer", "error", err)
+		os.Exit(1)
+	}
+
+	description := "Fedora 43 aarch64 base image"
+	snapshotID, err := importer.ImportSnapshot(ctx, bucket, s3Key, description)
+	if err != nil {
+		slog.Error("Failed to import snapshot", "error", err)
+		os.Exit(1)
+	}
+
+	fmt.Printf("Snapshot created: %s\n", snapshotID)
+
 }
