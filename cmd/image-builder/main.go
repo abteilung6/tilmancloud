@@ -31,6 +31,13 @@ func runBuild() {
 		os.Exit(1)
 	}
 
+	imageID, err := image.GenerateImageIDFromFile(rawPath)
+	if err != nil {
+		slog.Error("Failed to generate ImageID", "error", err)
+		os.Exit(1)
+	}
+	slog.Info("Generated ImageID", "image_id", imageID)
+
 	bucket := os.Getenv("AWS_S3_BUCKET")
 	if bucket == "" {
 		slog.Error("AWS_S3_BUCKET environment variable not set")
@@ -63,7 +70,7 @@ func runBuild() {
 	}
 
 	description := "Fedora 43 aarch64 base image"
-	snapshotID, err := importer.ImportSnapshot(ctx, bucket, s3Key, description)
+	snapshotID, err := importer.ImportSnapshot(ctx, bucket, s3Key, description, imageID)
 	if err != nil {
 		slog.Error("Failed to import snapshot", "error", err)
 		os.Exit(1)
