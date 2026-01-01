@@ -16,7 +16,7 @@ func main() {
 func runBuild() {
 	ctx := context.Background()
 	downloader := image.NewDownloader("build/images")
-	cloud_base_image_url := "https://download.fedoraproject.org/pub/fedora/linux/releases/43/Server/aarch64/images/Fedora-Server-Host-Generic-43-1.6.aarch64.raw.xz"
+	cloud_base_image_url := "https://download.fedoraproject.org/pub/fedora/linux/releases/43/Cloud/aarch64/images/Fedora-Cloud-Base-AmazonEC2-43-1.6.aarch64.raw.xz"
 
 	err := downloader.Download(ctx, cloud_base_image_url)
 	if err != nil {
