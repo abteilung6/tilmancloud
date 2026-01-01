@@ -78,4 +78,19 @@ func runBuild() {
 
 	fmt.Printf("Snapshot created: %s\n", snapshotID)
 
+	registrar, err := image.NewAMIRegistrar(ctx, region)
+	if err != nil {
+		slog.Error("Failed to create AMI registrar", "error", err)
+		os.Exit(1)
+	}
+
+	amiName := fmt.Sprintf("fedora-43-aarch64-base-%s", imageID)
+	amiID, err := registrar.RegisterAMI(ctx, snapshotID, imageID, amiName, description)
+	if err != nil {
+		slog.Error("Failed to register AMI", "error", err)
+		os.Exit(1)
+	}
+
+	fmt.Printf("AMI registered: %s\n", amiID)
+
 }
