@@ -23,7 +23,7 @@ func CreateNewServer() (*Server, error) {
 	return server, nil
 }
 
-func MountHandlers(server *Server, nodesHandler *endpoints.NodesHandler, healthHandler *endpoints.HealthHandler) {
+func MountHandlers(server *Server, nodesHandler *endpoints.NodesHandler, imagesHandler *endpoints.ImagesHandler, healthHandler *endpoints.HealthHandler) {
 	// Middleware
 	server.Router.Use(middleware.Logger)
 	server.Router.Use(middleware.Recoverer)
@@ -42,6 +42,7 @@ func MountHandlers(server *Server, nodesHandler *endpoints.NodesHandler, healthH
 	server.Router.Get("/nodes", nodesHandler.ListNodes)
 	server.Router.Post("/nodes", nodesHandler.CreateNode)
 	server.Router.Delete("/nodes/{nodeId}", nodesHandler.DeleteNode)
+	server.Router.Get("/images", imagesHandler.ListImages)
 }
 
 func main() {
@@ -59,6 +60,7 @@ func main() {
 	}
 
 	nodesHandler := endpoints.NewNodesHandler(ec2Client, amiRegistrar)
+	imagesHandler := endpoints.NewImagesHandler(amiRegistrar)
 	healthHandler := endpoints.NewHealthHandler()
 
 	server, err := CreateNewServer()
@@ -66,7 +68,7 @@ func main() {
 		log.Fatalf("Failed to create server: %v", err)
 	}
 
-	MountHandlers(server, nodesHandler, healthHandler)
+	MountHandlers(server, nodesHandler, imagesHandler, healthHandler)
 
 	port := ":8080"
 	log.Printf("Admin API server starting on port %s", port)

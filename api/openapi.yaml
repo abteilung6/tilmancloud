@@ -66,6 +66,22 @@ paths:
           description: Node not found
         '500':
           description: Internal server error
+  /images:
+    get:
+      operationId: listImages
+      summary: List all images
+      description: Returns a list of all AMIs (Amazon Machine Images)
+      responses:
+        '200':
+          description: List of images
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Image'
+        '500':
+          description: Internal server error
 
 components:
   schemas:
@@ -104,4 +120,53 @@ components:
           nullable: true
           description: Private IP address
           example: "10.0.1.123"
+    Image:
+      type: object
+      required:
+        - id
+        - state
+        - creationDate
+        - architecture
+        - virtualizationType
+      properties:
+        id:
+          type: string
+          description: AMI ID
+          example: "ami-1234567890abcdef0"
+        name:
+          type: string
+          description: AMI name
+          example: "fedora-43-aarch64-base-76f2ddd3bac7da2b"
+        state:
+          type: string
+          description: AMI state
+          enum: [available, pending, failed, deregistered]
+          example: "available"
+        imageId:
+          type: string
+          description: Content-based image identifier (from ImageID tag)
+          example: "fedora-43-aarch64-76f2ddd3bac7da2b"
+        creationDate:
+          type: string
+          format: date-time
+          description: AMI creation date (ISO 8601)
+          example: "2024-01-15T10:30:00Z"
+        description:
+          type: string
+          description: AMI description
+          example: "Fedora 43 aarch64 base image"
+        snapshotId:
+          type: string
+          description: Source snapshot ID (from SnapshotID tag)
+          example: "snap-abcdef1234567890"
+        architecture:
+          type: string
+          description: Architecture type
+          enum: [arm64, x86_64]
+          example: "arm64"
+        virtualizationType:
+          type: string
+          description: Virtualization type
+          enum: [hvm, paravirtual]
+          example: "hvm"
 

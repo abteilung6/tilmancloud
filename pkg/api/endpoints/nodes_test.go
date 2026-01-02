@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/abteilung6/tilmancloud/pkg/api/generated"
@@ -165,8 +166,10 @@ func TestNodesHandler_CreateNode_NoAMI(t *testing.T) {
 	}
 
 	expectedBody := "No AMI available. Please build an AMI first."
-	if w.Body.String() != expectedBody {
-		t.Errorf("expected body %q, got %q", expectedBody, w.Body.String())
+	// http.Error appends a newline, so trim it for comparison
+	actualBody := strings.TrimSpace(w.Body.String())
+	if actualBody != expectedBody {
+		t.Errorf("expected body %q, got %q", expectedBody, actualBody)
 	}
 }
 

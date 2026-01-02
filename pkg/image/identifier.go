@@ -25,4 +25,3 @@ func GenerateImageIDFromFile(filePath string) (string, error) {
 
 	return fmt.Sprintf("fedora-43-aarch64-%s", shortHash), nil
 }
-

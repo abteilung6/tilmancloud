@@ -33,6 +33,10 @@ type AMIFinder interface {
 	FindLatestAMI(ctx context.Context) (string, error)
 }
 
+type ImageLister interface {
+	ListImages(ctx context.Context) ([]types.Image, error)
+}
+
 func (r *AMIRegistrar) FindLatestAMI(ctx context.Context) (string, error) {
 	slog.Info("Finding latest available AMI")
 	result, err := r.client.DescribeImages(ctx, &ec2.DescribeImagesInput{
@@ -200,4 +204,15 @@ func (r *AMIRegistrar) WaitForAvailable(ctx context.Context, amiID string) error
 
 	slog.Info("AMI is now available", "ami_id", amiID)
 	return nil
+}
+
+func (r *AMIRegistrar) ListImages(ctx context.Context) ([]types.Image, error) {
+	result, err := r.client.DescribeImages(ctx, &ec2.DescribeImagesInput{
+		Owners: []string{"self"},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to query AMIs: %w", err)
+	}
+
+	return result.Images, nil
 }
