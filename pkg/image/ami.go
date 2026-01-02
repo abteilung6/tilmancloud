@@ -102,8 +102,8 @@ func (r *AMIRegistrar) RegisterAMI(ctx context.Context, snapshotID, imageID, nam
 				},
 			},
 		},
-		EnaSupport: aws.Bool(true),
-		BootMode:   types.BootModeValuesUefi,
+		EnaSupport:      aws.Bool(true),
+		SriovNetSupport: aws.String("simple"),
 	})
 	if err != nil {
 		return "", fmt.Errorf("failed to register AMI: %w", err)
