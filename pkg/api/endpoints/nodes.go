@@ -7,23 +7,38 @@ import (
 
 	"github.com/abteilung6/tilmancloud/pkg/api/generated"
 	"github.com/abteilung6/tilmancloud/pkg/ec2"
+	"github.com/abteilung6/tilmancloud/pkg/image"
+	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/go-chi/chi/v5"
 )
 
 type NodesHandler struct {
 	EC2Client ec2.EC2Client
+	AMIFinder image.AMIFinder
 }
 
-func NewNodesHandler(ec2Client ec2.EC2Client) *NodesHandler {
+func NewNodesHandler(ec2Client ec2.EC2Client, amiFinder image.AMIFinder) *NodesHandler {
 	return &NodesHandler{
 		EC2Client: ec2Client,
+		AMIFinder: amiFinder,
 	}
 }
 
 func (h *NodesHandler) CreateNode(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	instanceInfo, err := ec2.CreateInstance(ctx, h.EC2Client)
+	amiID, err := h.AMIFinder.FindLatestAMI(ctx)
+	if err != nil {
+		http.Error(w, "No AMI available. Please build an AMI first.", http.StatusServiceUnavailable)
+		return
+	}
+
+	config := ec2.CreateInstanceConfig{
+		ImageID:      amiID,
+		InstanceType: types.InstanceTypeT4gMicro,
+	}
+
+	instanceInfo, err := ec2.CreateInstance(ctx, h.EC2Client, config)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

@@ -7,6 +7,7 @@ import (
 
 	"github.com/abteilung6/tilmancloud/pkg/api/endpoints"
 	"github.com/abteilung6/tilmancloud/pkg/ec2"
+	"github.com/abteilung6/tilmancloud/pkg/image"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
@@ -45,13 +46,19 @@ func MountHandlers(server *Server, nodesHandler *endpoints.NodesHandler, healthH
 
 func main() {
 	ctx := context.Background()
+	region := "eu-central-1"
 
-	ec2Client, err := ec2.NewClient(ctx, "eu-central-1")
+	ec2Client, err := ec2.NewClient(ctx, region)
 	if err != nil {
 		log.Fatalf("Failed to create EC2 client: %v", err)
 	}
 
-	nodesHandler := endpoints.NewNodesHandler(ec2Client)
+	amiRegistrar, err := image.NewAMIRegistrar(ctx, region)
+	if err != nil {
+		log.Fatalf("Failed to create AMI registrar: %v", err)
+	}
+
+	nodesHandler := endpoints.NewNodesHandler(ec2Client, amiRegistrar)
 	healthHandler := endpoints.NewHealthHandler()
 
 	server, err := CreateNewServer()

@@ -12,6 +12,7 @@ type EC2Client interface {
 	RunInstances(ctx context.Context, params *awsec2.RunInstancesInput, optFns ...func(*awsec2.Options)) (*awsec2.RunInstancesOutput, error)
 	DescribeInstances(ctx context.Context, params *awsec2.DescribeInstancesInput, optFns ...func(*awsec2.Options)) (*awsec2.DescribeInstancesOutput, error)
 	TerminateInstances(ctx context.Context, params *awsec2.TerminateInstancesInput, optFns ...func(*awsec2.Options)) (*awsec2.TerminateInstancesOutput, error)
+	DescribeImages(ctx context.Context, params *awsec2.DescribeImagesInput, optFns ...func(*awsec2.Options)) (*awsec2.DescribeImagesOutput, error)
 }
 
 func NewClient(ctx context.Context, region string) (EC2Client, error) {

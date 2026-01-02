@@ -10,6 +10,7 @@ import (
 
 	"github.com/abteilung6/tilmancloud/pkg/api/generated"
 	"github.com/abteilung6/tilmancloud/pkg/ec2"
+	"github.com/abteilung6/tilmancloud/pkg/image"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	awsec2 "github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
@@ -19,12 +20,25 @@ import (
 func TestNodesHandler_CreateNode(t *testing.T) {
 	expectedInstanceID := "i-1234567890abcdef0"
 	expectedState := types.InstanceStateNamePending
-	expectedInstanceType := types.InstanceTypeT2Micro
+	expectedInstanceType := types.InstanceTypeT4gMicro
 	expectedPublicIP := "54.123.45.67"
 	expectedPrivateIP := "10.0.1.123"
+	expectedImageID := "ami-1234567890abcdef0"
+
+	mockAMIFinder := &image.MockAMIFinder{
+		FindLatestAMIFunc: func(ctx context.Context) (string, error) {
+			return expectedImageID, nil
+		},
+	}
 
 	mockClient := &ec2.MockEC2Client{
 		RunInstancesFunc: func(ctx context.Context, params *awsec2.RunInstancesInput, optFns ...func(*awsec2.Options)) (*awsec2.RunInstancesOutput, error) {
+			if params.ImageId == nil || *params.ImageId != expectedImageID {
+				t.Errorf("expected image ID %s, got %v", expectedImageID, params.ImageId)
+			}
+			if params.InstanceType != expectedInstanceType {
+				t.Errorf("expected instance type %s, got %s", expectedInstanceType, params.InstanceType)
+			}
 			return &awsec2.RunInstancesOutput{
 				Instances: []types.Instance{
 					{
@@ -41,7 +55,7 @@ func TestNodesHandler_CreateNode(t *testing.T) {
 		},
 	}
 
-	handler := NewNodesHandler(mockClient)
+	handler := NewNodesHandler(mockClient, mockAMIFinder)
 
 	req := httptest.NewRequest("POST", "/nodes", nil)
 	w := httptest.NewRecorder()
@@ -77,7 +91,14 @@ func TestNodesHandler_CreateNode(t *testing.T) {
 func TestNodesHandler_CreateNode_WithNilIPs(t *testing.T) {
 	expectedInstanceID := "i-1234567890abcdef0"
 	expectedState := types.InstanceStateNamePending
-	expectedInstanceType := types.InstanceTypeT2Micro
+	expectedInstanceType := types.InstanceTypeT4gMicro
+	expectedImageID := "ami-1234567890abcdef0"
+
+	mockAMIFinder := &image.MockAMIFinder{
+		FindLatestAMIFunc: func(ctx context.Context) (string, error) {
+			return expectedImageID, nil
+		},
+	}
 
 	mockClient := &ec2.MockEC2Client{
 		RunInstancesFunc: func(ctx context.Context, params *awsec2.RunInstancesInput, optFns ...func(*awsec2.Options)) (*awsec2.RunInstancesOutput, error) {
@@ -96,7 +117,7 @@ func TestNodesHandler_CreateNode_WithNilIPs(t *testing.T) {
 		},
 	}
 
-	handler := NewNodesHandler(mockClient)
+	handler := NewNodesHandler(mockClient, mockAMIFinder)
 
 	req := httptest.NewRequest("POST", "/nodes", nil)
 	w := httptest.NewRecorder()
@@ -123,14 +144,46 @@ func TestNodesHandler_CreateNode_WithNilIPs(t *testing.T) {
 	}
 }
 
+func TestNodesHandler_CreateNode_NoAMI(t *testing.T) {
+	mockAMIFinder := &image.MockAMIFinder{
+		FindLatestAMIFunc: func(ctx context.Context) (string, error) {
+			return "", fmt.Errorf("no available AMIs found")
+		},
+	}
+
+	mockClient := &ec2.MockEC2Client{}
+
+	handler := NewNodesHandler(mockClient, mockAMIFinder)
+
+	req := httptest.NewRequest("POST", "/nodes", nil)
+	w := httptest.NewRecorder()
+
+	handler.CreateNode(w, req)
+
+	if w.Code != http.StatusServiceUnavailable {
+		t.Errorf("expected status code %d, got %d", http.StatusServiceUnavailable, w.Code)
+	}
+
+	expectedBody := "No AMI available. Please build an AMI first."
+	if w.Body.String() != expectedBody {
+		t.Errorf("expected body %q, got %q", expectedBody, w.Body.String())
+	}
+}
+
 func TestNodesHandler_CreateNode_Error(t *testing.T) {
+	mockAMIFinder := &image.MockAMIFinder{
+		FindLatestAMIFunc: func(ctx context.Context) (string, error) {
+			return "ami-1234567890abcdef0", nil
+		},
+	}
+
 	mockClient := &ec2.MockEC2Client{
 		RunInstancesFunc: func(ctx context.Context, params *awsec2.RunInstancesInput, optFns ...func(*awsec2.Options)) (*awsec2.RunInstancesOutput, error) {
 			return nil, fmt.Errorf("AWS API error")
 		},
 	}
 
-	handler := NewNodesHandler(mockClient)
+	handler := NewNodesHandler(mockClient, mockAMIFinder)
 
 	req := httptest.NewRequest("POST", "/nodes", nil)
 	w := httptest.NewRecorder()
@@ -147,7 +200,7 @@ func TestNodesHandler_ListNodes(t *testing.T) {
 	expectedInstanceID2 := "i-0987654321fedcba0"
 	expectedState1 := types.InstanceStateNameRunning
 	expectedState2 := types.InstanceStateNamePending
-	expectedInstanceType := types.InstanceTypeT2Micro
+	expectedInstanceType := types.InstanceTypeT4gMicro
 	expectedPublicIP1 := "54.123.45.67"
 	expectedPrivateIP1 := "10.0.1.123"
 	expectedPublicIP2 := "54.123.45.68"
@@ -184,7 +237,13 @@ func TestNodesHandler_ListNodes(t *testing.T) {
 		},
 	}
 
-	handler := NewNodesHandler(mockClient)
+	mockAMIFinder := &image.MockAMIFinder{
+		FindLatestAMIFunc: func(ctx context.Context) (string, error) {
+			return "ami-1234567890abcdef0", nil
+		},
+	}
+
+	handler := NewNodesHandler(mockClient, mockAMIFinder)
 
 	req := httptest.NewRequest("GET", "/nodes", nil)
 	w := httptest.NewRecorder()
@@ -244,7 +303,13 @@ func TestNodesHandler_ListNodes_Empty(t *testing.T) {
 		},
 	}
 
-	handler := NewNodesHandler(mockClient)
+	mockAMIFinder := &image.MockAMIFinder{
+		FindLatestAMIFunc: func(ctx context.Context) (string, error) {
+			return "ami-1234567890abcdef0", nil
+		},
+	}
+
+	handler := NewNodesHandler(mockClient, mockAMIFinder)
 
 	req := httptest.NewRequest("GET", "/nodes", nil)
 	w := httptest.NewRecorder()
@@ -272,7 +337,13 @@ func TestNodesHandler_ListNodes_Error(t *testing.T) {
 		},
 	}
 
-	handler := NewNodesHandler(mockClient)
+	mockAMIFinder := &image.MockAMIFinder{
+		FindLatestAMIFunc: func(ctx context.Context) (string, error) {
+			return "ami-1234567890abcdef0", nil
+		},
+	}
+
+	handler := NewNodesHandler(mockClient, mockAMIFinder)
 
 	req := httptest.NewRequest("GET", "/nodes", nil)
 	w := httptest.NewRecorder()
@@ -308,7 +379,13 @@ func TestNodesHandler_DeleteNode(t *testing.T) {
 		},
 	}
 
-	handler := NewNodesHandler(mockClient)
+	mockAMIFinder := &image.MockAMIFinder{
+		FindLatestAMIFunc: func(ctx context.Context) (string, error) {
+			return "ami-1234567890abcdef0", nil
+		},
+	}
+
+	handler := NewNodesHandler(mockClient, mockAMIFinder)
 
 	req := httptest.NewRequest("DELETE", "/nodes/"+expectedInstanceID, nil)
 	rctx := chi.NewRouteContext()
@@ -336,7 +413,13 @@ func TestNodesHandler_DeleteNode_NotFound(t *testing.T) {
 		},
 	}
 
-	handler := NewNodesHandler(mockClient)
+	mockAMIFinder := &image.MockAMIFinder{
+		FindLatestAMIFunc: func(ctx context.Context) (string, error) {
+			return "ami-1234567890abcdef0", nil
+		},
+	}
+
+	handler := NewNodesHandler(mockClient, mockAMIFinder)
 
 	req := httptest.NewRequest("DELETE", "/nodes/"+expectedInstanceID, nil)
 	rctx := chi.NewRouteContext()
@@ -360,7 +443,13 @@ func TestNodesHandler_DeleteNode_Error(t *testing.T) {
 		},
 	}
 
-	handler := NewNodesHandler(mockClient)
+	mockAMIFinder := &image.MockAMIFinder{
+		FindLatestAMIFunc: func(ctx context.Context) (string, error) {
+			return "ami-1234567890abcdef0", nil
+		},
+	}
+
+	handler := NewNodesHandler(mockClient, mockAMIFinder)
 
 	req := httptest.NewRequest("DELETE", "/nodes/"+expectedInstanceID, nil)
 	rctx := chi.NewRouteContext()

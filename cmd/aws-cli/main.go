@@ -7,6 +7,8 @@ import (
 	"os"
 
 	"github.com/abteilung6/tilmancloud/pkg/ec2"
+	"github.com/abteilung6/tilmancloud/pkg/image"
+	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 )
 
 func main() {
@@ -27,7 +29,23 @@ func main() {
 
 	switch command {
 	case "create":
-		instanceInfo, err := ec2.CreateInstance(ctx, ec2Client)
+		region := "eu-central-1"
+		amiRegistrar, err := image.NewAMIRegistrar(ctx, region)
+		if err != nil {
+			log.Fatalf("Failed to create AMI registrar: %v", err)
+		}
+
+		amiID, err := amiRegistrar.FindLatestAMI(ctx)
+		if err != nil {
+			log.Fatalf("No AMI available. Please build an AMI first: %v", err)
+		}
+
+		config := ec2.CreateInstanceConfig{
+			ImageID:      amiID,
+			InstanceType: types.InstanceTypeT4gMicro,
+		}
+
+		instanceInfo, err := ec2.CreateInstance(ctx, ec2Client, config)
 		if err != nil {
 			log.Fatalf("Create command failed: %v", err)
 		}

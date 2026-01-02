@@ -29,6 +29,51 @@ func NewAMIRegistrar(ctx context.Context, region string) (*AMIRegistrar, error) 
 	}, nil
 }
 
+type AMIFinder interface {
+	FindLatestAMI(ctx context.Context) (string, error)
+}
+
+func (r *AMIRegistrar) FindLatestAMI(ctx context.Context) (string, error) {
+	slog.Info("Finding latest available AMI")
+	result, err := r.client.DescribeImages(ctx, &ec2.DescribeImagesInput{
+		Filters: []types.Filter{
+			{
+				Name:   aws.String("state"),
+				Values: []string{"available"},
+			},
+		},
+		Owners: []string{"self"},
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to query AMIs: %w", err)
+	}
+
+	if len(result.Images) == 0 {
+		return "", fmt.Errorf("no available AMIs found")
+	}
+
+	var latest *types.Image
+	for i := range result.Images {
+		img := &result.Images[i]
+		if latest == nil {
+			latest = img
+			continue
+		}
+		if img.CreationDate != nil && latest.CreationDate != nil {
+			if *img.CreationDate > *latest.CreationDate {
+				latest = img
+			}
+		}
+	}
+
+	if latest == nil || latest.ImageId == nil {
+		return "", fmt.Errorf("no available AMIs found")
+	}
+
+	slog.Info("Found latest AMI", "ami_id", *latest.ImageId, "creation_date", latest.CreationDate)
+	return *latest.ImageId, nil
+}
+
 func (r *AMIRegistrar) FindAMIByImageID(ctx context.Context, imageID string) (string, error) {
 	result, err := r.client.DescribeImages(ctx, &ec2.DescribeImagesInput{
 		Filters: []types.Filter{

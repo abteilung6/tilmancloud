@@ -15,10 +15,17 @@ func TestCreateInstance_Success(t *testing.T) {
 	ctx := context.Background()
 	expectedInstanceID := "i-1234567890abcdef0"
 	expectedState := types.InstanceStateNamePending
-	expectedInstanceType := types.InstanceTypeT2Micro
+	expectedInstanceType := types.InstanceTypeT4gMicro
+	expectedImageID := "ami-1234567890abcdef0"
 
 	mockClient := &MockEC2Client{
 		RunInstancesFunc: func(ctx context.Context, params *awsec2.RunInstancesInput, optFns ...func(*awsec2.Options)) (*awsec2.RunInstancesOutput, error) {
+			if params.ImageId == nil || *params.ImageId != expectedImageID {
+				t.Errorf("expected image ID %s, got %v", expectedImageID, params.ImageId)
+			}
+			if params.InstanceType != expectedInstanceType {
+				t.Errorf("expected instance type %s, got %s", expectedInstanceType, params.InstanceType)
+			}
 			return &awsec2.RunInstancesOutput{
 				Instances: []types.Instance{
 					{
@@ -33,7 +40,11 @@ func TestCreateInstance_Success(t *testing.T) {
 		},
 	}
 
-	instanceInfo, err := CreateInstance(ctx, mockClient)
+	config := CreateInstanceConfig{
+		ImageID:      expectedImageID,
+		InstanceType: expectedInstanceType,
+	}
+	instanceInfo, err := CreateInstance(ctx, mockClient, config)
 
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -59,7 +70,11 @@ func TestCreateInstance_RunInstancesError(t *testing.T) {
 		},
 	}
 
-	instanceInfo, err := CreateInstance(ctx, mockClient)
+	config := CreateInstanceConfig{
+		ImageID:      "ami-1234567890abcdef0",
+		InstanceType: types.InstanceTypeT4gMicro,
+	}
+	instanceInfo, err := CreateInstance(ctx, mockClient, config)
 
 	if err == nil {
 		t.Fatal("expected error, got nil")

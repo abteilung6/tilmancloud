@@ -61,12 +61,17 @@ func WaitForInstanceRunning(ctx context.Context, client EC2Client, instanceID st
 	}
 }
 
-func CreateInstance(ctx context.Context, client EC2Client) (InstanceInfo, error) {
-	slog.Info("Creating EC2 instance")
+type CreateInstanceConfig struct {
+	ImageID      string
+	InstanceType types.InstanceType
+}
+
+func CreateInstance(ctx context.Context, client EC2Client, config CreateInstanceConfig) (InstanceInfo, error) {
+	slog.Info("Creating EC2 instance", "image_id", config.ImageID, "instance_type", config.InstanceType)
 
 	runInput := &awsec2.RunInstancesInput{
-		ImageId:      aws.String("ami-004e960cde33f9146"),
-		InstanceType: types.InstanceTypeT2Micro,
+		ImageId:      aws.String(config.ImageID),
+		InstanceType: config.InstanceType,
 		MinCount:     aws.Int32(1),
 		MaxCount:     aws.Int32(1),
 	}

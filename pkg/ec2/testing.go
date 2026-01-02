@@ -11,6 +11,7 @@ type MockEC2Client struct {
 	RunInstancesFunc       func(ctx context.Context, params *awsec2.RunInstancesInput, optFns ...func(*awsec2.Options)) (*awsec2.RunInstancesOutput, error)
 	DescribeInstancesFunc  func(ctx context.Context, params *awsec2.DescribeInstancesInput, optFns ...func(*awsec2.Options)) (*awsec2.DescribeInstancesOutput, error)
 	TerminateInstancesFunc func(ctx context.Context, params *awsec2.TerminateInstancesInput, optFns ...func(*awsec2.Options)) (*awsec2.TerminateInstancesOutput, error)
+	DescribeImagesFunc     func(ctx context.Context, params *awsec2.DescribeImagesInput, optFns ...func(*awsec2.Options)) (*awsec2.DescribeImagesOutput, error)
 }
 
 func (m *MockEC2Client) RunInstances(ctx context.Context, params *awsec2.RunInstancesInput, optFns ...func(*awsec2.Options)) (*awsec2.RunInstancesOutput, error) {
@@ -32,4 +33,11 @@ func (m *MockEC2Client) TerminateInstances(ctx context.Context, params *awsec2.T
 		return m.TerminateInstancesFunc(ctx, params, optFns...)
 	}
 	return nil, fmt.Errorf("TerminateInstancesFunc not set")
+}
+
+func (m *MockEC2Client) DescribeImages(ctx context.Context, params *awsec2.DescribeImagesInput, optFns ...func(*awsec2.Options)) (*awsec2.DescribeImagesOutput, error) {
+	if m.DescribeImagesFunc != nil {
+		return m.DescribeImagesFunc(ctx, params, optFns...)
+	}
+	return nil, fmt.Errorf("DescribeImagesFunc not set")
 }
