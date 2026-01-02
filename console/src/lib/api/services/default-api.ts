@@ -24,6 +24,8 @@ import { BASE_PATH, COLLECTION_FORMATS, type RequestArgs, BaseAPI, RequiredError
 // @ts-ignore
 import type { Health } from '../models';
 // @ts-ignore
+import type { Image } from '../models';
+// @ts-ignore
 import type { Node } from '../models';
 /**
  * DefaultApi - axios parameter creator
@@ -124,6 +126,36 @@ export const DefaultApiAxiosParamCreator = function (configuration?: Configurati
             };
         },
         /**
+         * Returns a list of all AMIs (Amazon Machine Images)
+         * @summary List all images
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        listImages: async (options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            const localVarPath = `/images`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
          * Returns a list of all nodes (EC2 instances)
          * @summary List all nodes
          * @param {*} [options] Override http request option.
@@ -200,6 +232,18 @@ export const DefaultApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
+         * Returns a list of all AMIs (Amazon Machine Images)
+         * @summary List all images
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async listImages(options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Array<Image>>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.listImages(options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['DefaultApi.listImages']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
          * Returns a list of all nodes (EC2 instances)
          * @summary List all nodes
          * @param {*} [options] Override http request option.
@@ -249,6 +293,15 @@ export const DefaultApiFactory = function (configuration?: Configuration, basePa
             return localVarFp.health(options).then((request) => request(axios, basePath));
         },
         /**
+         * Returns a list of all AMIs (Amazon Machine Images)
+         * @summary List all images
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        listImages(options?: RawAxiosRequestConfig): AxiosPromise<Array<Image>> {
+            return localVarFp.listImages(options).then((request) => request(axios, basePath));
+        },
+        /**
          * Returns a list of all nodes (EC2 instances)
          * @summary List all nodes
          * @param {*} [options] Override http request option.
@@ -293,6 +346,16 @@ export class DefaultApi extends BaseAPI {
      */
     public health(options?: RawAxiosRequestConfig) {
         return DefaultApiFp(this.configuration).health(options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Returns a list of all AMIs (Amazon Machine Images)
+     * @summary List all images
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public listImages(options?: RawAxiosRequestConfig) {
+        return DefaultApiFp(this.configuration).listImages(options).then((request) => request(this.axios, this.basePath));
     }
 
     /**

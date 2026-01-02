@@ -54,12 +54,14 @@ Class | Method | HTTP request | Description
 *DefaultApi* | [**createNode**](docs/DefaultApi.md#createnode) | **POST** /nodes | Create a new node
 *DefaultApi* | [**deleteNode**](docs/DefaultApi.md#deletenode) | **DELETE** /nodes/{nodeId} | Delete a node
 *DefaultApi* | [**health**](docs/DefaultApi.md#health) | **GET** /health | Health check
+*DefaultApi* | [**listImages**](docs/DefaultApi.md#listimages) | **GET** /images | List all images
 *DefaultApi* | [**listNodes**](docs/DefaultApi.md#listnodes) | **GET** /nodes | List all nodes
 
 
 ### Documentation For Models
 
  - [Health](docs/Health.md)
+ - [Image](docs/Image.md)
  - [Node](docs/Node.md)
 
 

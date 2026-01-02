@@ -7,10 +7,12 @@ common.ts
 configuration.ts
 docs/DefaultApi.md
 docs/Health.md
+docs/Image.md
 docs/Node.md
 git_push.sh
 index.ts
 models/health.ts
+models/image.ts
 models/index.ts
 models/node.ts
 package.json

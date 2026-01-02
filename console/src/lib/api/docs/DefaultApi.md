@@ -7,6 +7,7 @@ All URIs are relative to *http://localhost:8080*
 |[**createNode**](#createnode) | **POST** /nodes | Create a new node|
 |[**deleteNode**](#deletenode) | **DELETE** /nodes/{nodeId} | Delete a node|
 |[**health**](#health) | **GET** /health | Health check|
+|[**listImages**](#listimages) | **GET** /images | List all images|
 |[**listNodes**](#listnodes) | **GET** /nodes | List all nodes|
 
 # **createNode**
@@ -147,6 +148,51 @@ No authorization required
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 |**200** | API is healthy |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **listImages**
+> Array<Image> listImages()
+
+Returns a list of all AMIs (Amazon Machine Images)
+
+### Example
+
+```typescript
+import {
+    DefaultApi,
+    Configuration
+} from '@tilmancloud/api-client';
+
+const configuration = new Configuration();
+const apiInstance = new DefaultApi(configuration);
+
+const { status, data } = await apiInstance.listImages();
+```
+
+### Parameters
+This endpoint does not have any parameters.
+
+
+### Return type
+
+**Array<Image>**
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+|**200** | List of images |  -  |
+|**500** | Internal server error |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
