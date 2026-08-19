@@ -1,0 +1,23 @@
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: tilmancloud
+nodes:
+  - role: control-plane
+    labels:
+      topology.kubernetes.io/zone: eu-central-1a
+    kubeadmConfigPatches:
+      - |
+        kind: InitConfiguration
+        nodeRegistration:
+          taints:
+            - key: node-role.kubernetes.io/control-plane
+              effect: NoSchedule
+  - role: worker
+    labels:
+      topology.kubernetes.io/zone: eu-central-1a
+  - role: worker
+    labels:
+      topology.kubernetes.io/zone: eu-central-1b
+  - role: worker
+    labels:
+      topology.kubernetes.io/zone: eu-central-1c
