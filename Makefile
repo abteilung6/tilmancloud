@@ -9,7 +9,7 @@ CLUSTER_CREATE_ATTEMPTS ?= 3
 # Prefer project-local binaries if present; Make does not download them.
 export PATH := $(CURDIR)/bin:$(PATH)
 
-.PHONY: help check cluster-up cluster-down apply
+.PHONY: help check cluster-up cluster-down apply env
 
 help: ## Show targets
 	@awk 'BEGIN {FS = ":.*##"} /^[a-zA-Z0-9_-]+:.*##/ {printf "  %-18s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -50,6 +50,9 @@ cluster-up: check ## Create the local Kind cluster, wait until nodes are Ready, 
 
 apply: check ## Apply lab manifests with kustomize
 	kubectl apply -k $(MANIFESTS)
+
+env: ## Print export PATH so the shell can use ./bin
+	@echo 'export PATH="$(CURDIR)/bin:$$PATH"'
 
 cluster-down: check ## Delete the local Kind cluster
 	kind delete cluster --name $(CLUSTER_NAME)

@@ -1,7 +1,7 @@
 ---
 name: local-kind-cluster
 description: >-
-  Local Kind lab for tilmancloud. Use when running cluster-up/cluster-down/apply,
+  Local Kind lab for tilmancloud. Use when running cluster-up/cluster-down/apply/env,
   editing deploy/kind/cluster.yaml or deploy/manifests, adding Make targets,
   or installing kind/kubectl.
 ---
@@ -18,13 +18,14 @@ From repo root. Prefer Make over raw `kind`/`kubectl`.
 make cluster-up      # create tilmancloud if missing; retry create; wait for 4 Ready nodes; apply lab
 make cluster-down    # delete cluster (idempotent)
 make apply           # kubectl apply -k deploy/manifests
+make env             # print export PATH for ./bin; eval "$(make env)"
 ```
 
 Make does not install CLIs. Recreate = down then up. `cluster-down` is Kind-delete only; the namespace dies with the cluster. `cluster-up` retries `kind create` up to 3 times because kubeadm can time out before the API server accepts the bootstrap ClusterRoleBinding. Control-plane `InitConfiguration.timeouts.kubernetesAPICall` is 4m (kubeadm default is 1m). After nodes are Ready, `cluster-up` runs `apply`.
 
 ## CLIs
 
-Need Docker running, plus `kind` and `kubectl` on PATH or in `./bin` (gitignored). If missing, install into `./bin` — do not add a Make download target:
+Need Docker running, plus `kind` and `kubectl` on PATH or in `./bin` (gitignored). Make prepends `./bin` for its recipes. For raw `kubectl` in the shell, `eval "$(make env)"` — do not document an absolute home path. If missing, install into `./bin` — do not add a Make download target:
 
 - `os`: `linux` | `darwin`
 - `arch`: `amd64` | `arm64` (`uname -m` `aarch64` → `arm64`)
