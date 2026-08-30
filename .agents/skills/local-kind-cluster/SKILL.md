@@ -1,7 +1,7 @@
 ---
 name: local-kind-cluster
 description: >-
-  Local Kind lab for tilmancloud. Use when running cluster-up/cluster-down/apply/env/clickhouse-wait,
+  Local Kind lab for tilmancloud. Use when running cluster-up/cluster-down/apply/env/clickhouse-wait/verify-clickhouse,
   editing deploy/kind/cluster.yaml or deploy/manifests, adding Make targets,
   or installing kind/kubectl.
 ---
@@ -19,6 +19,7 @@ make cluster-up      # create tilmancloud if missing; retry create; wait for 4 R
 make cluster-down    # delete cluster (idempotent)
 make apply           # kubectl apply -k deploy/manifests
 make clickhouse-wait # kubectl rollout status sts/clickhouse -n clickhouse-lab
+make verify-clickhouse # insert, delete clickhouse-0, data+DNS still work
 make env             # print export PATH for ./bin; eval "$(make env)"
 ```
 
@@ -42,4 +43,4 @@ Do not pin `image:` in `cluster.yaml` until a Kubernetes SKU is required.
 
 ## Lab
 
-`deploy/manifests`: kustomize overlay. Namespace `clickhouse-lab` has Pod Security `restricted` (`enforce`/`audit`/`warn`). `clickhouse/` is a single-node official `clickhouse-server` StatefulSet (digest-pinned `26.3.20.7`), ClusterIP + headless Services, ConfigMap listen on `0.0.0.0`, lab Secret password `clickhouse-lab`, uid 101. Kind already provides StorageClass `standard` (local-path); do not add another provisioner. The STS `volumeClaimTemplates` PVC uses `standard` — node-local disk, not cloud durability. Verify with `clickhouse-client --password clickhouse-lab --query "SELECT 1"` inside the pod. Pod must land on a worker.
+`deploy/manifests`: kustomize overlay. Namespace `clickhouse-lab` has Pod Security `restricted` (`enforce`/`audit`/`warn`). `clickhouse/` is a single-node official `clickhouse-server` StatefulSet (digest-pinned `26.3.20.7`), ClusterIP + headless Services, ConfigMap listen on `0.0.0.0`, lab Secret password `clickhouse-lab`, uid 101. Kind already provides StorageClass `standard` (local-path); do not add another provisioner. The STS `volumeClaimTemplates` PVC uses `standard` — node-local disk, not cloud durability. Verify with `make verify-clickhouse` (`scripts/verify-clickhouse.sh`): MergeTree rows survive deleting `clickhouse-0`, and `getent hosts` inside the pod resolves the headless FQDN. That is kubelet remounting the PVC, not ClickHouse replication. Kind `standard` is node-local disk. Pod must land on a worker.

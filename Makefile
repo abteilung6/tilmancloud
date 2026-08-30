@@ -11,7 +11,7 @@ CLICKHOUSE_STS ?= clickhouse
 # Prefer project-local binaries if present; Make does not download them.
 export PATH := $(CURDIR)/bin:$(PATH)
 
-.PHONY: help check cluster-up cluster-down apply env clickhouse-wait
+.PHONY: help check cluster-up cluster-down apply env clickhouse-wait verify-clickhouse
 
 help: ## Show targets
 	@awk 'BEGIN {FS = ":.*##"} /^[a-zA-Z0-9_-]+:.*##/ {printf "  %-18s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -56,6 +56,9 @@ apply: check ## Apply lab manifests with kustomize
 
 clickhouse-wait: check ## Wait until the lab ClickHouse StatefulSet is Ready
 	kubectl rollout status sts/$(CLICKHOUSE_STS) -n $(CLICKHOUSE_NS) --timeout=10m
+
+verify-clickhouse: check ## Insert rows, delete the pod, confirm data and headless DNS
+	CLICKHOUSE_NS=$(CLICKHOUSE_NS) CLICKHOUSE_STS=$(CLICKHOUSE_STS) ./scripts/verify-clickhouse.sh
 
 env: ## Print export PATH so the shell can use ./bin
 	@echo 'export PATH="$(CURDIR)/bin:$$PATH"'

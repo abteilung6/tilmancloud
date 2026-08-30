@@ -9,5 +9,5 @@ metadata:
 data:
   listen.xml: |
     <clickhouse>
-      <listen_host>0.0.0.0</listen_host>
+      <listen_host replace="replace">0.0.0.0</listen_host>
     </clickhouse>
