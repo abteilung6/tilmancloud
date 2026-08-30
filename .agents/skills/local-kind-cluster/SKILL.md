@@ -1,7 +1,7 @@
 ---
 name: local-kind-cluster
 description: >-
-  Local Kind lab for tilmancloud. Use when running cluster-up/cluster-down/apply/env,
+  Local Kind lab for tilmancloud. Use when running cluster-up/cluster-down/apply/env/clickhouse-wait,
   editing deploy/kind/cluster.yaml or deploy/manifests, adding Make targets,
   or installing kind/kubectl.
 ---
@@ -15,13 +15,14 @@ No README for Make. Extend this file when targets change.
 From repo root. Prefer Make over raw `kind`/`kubectl`.
 
 ```bash
-make cluster-up      # create tilmancloud if missing; retry create; wait for 4 Ready nodes; apply lab
+make cluster-up      # create tilmancloud if missing; retry create; wait for 4 Ready nodes; apply lab; wait for ClickHouse
 make cluster-down    # delete cluster (idempotent)
 make apply           # kubectl apply -k deploy/manifests
+make clickhouse-wait # kubectl rollout status sts/clickhouse -n clickhouse-lab
 make env             # print export PATH for ./bin; eval "$(make env)"
 ```
 
-Make does not install CLIs. Recreate = down then up. `cluster-down` is Kind-delete only; the namespace dies with the cluster. `cluster-up` retries `kind create` up to 3 times because kubeadm can time out before the API server accepts the bootstrap ClusterRoleBinding. Control-plane `InitConfiguration.timeouts.kubernetesAPICall` is 4m (kubeadm default is 1m). After nodes are Ready, `cluster-up` runs `apply`.
+Make does not install CLIs. Recreate = down then up. `cluster-down` is Kind-delete only; the namespace and PVCs die with the cluster. `cluster-up` retries `kind create` up to 3 times because kubeadm can time out before the API server accepts the bootstrap ClusterRoleBinding. Control-plane `InitConfiguration.timeouts.kubernetesAPICall` is 4m (kubeadm default is 1m). After nodes are Ready, `cluster-up` runs `apply` then `clickhouse-wait` (10m — first image pull of the pinned ClickHouse digest is slow).
 
 ## CLIs
 
@@ -41,4 +42,4 @@ Do not pin `image:` in `cluster.yaml` until a Kubernetes SKU is required.
 
 ## Lab
 
-`deploy/manifests`: kustomize overlay. Today that is Namespace `clickhouse-lab` with Pod Security `restricted` (`enforce`/`audit`/`warn`). Later ClickHouse YAML is appended here. Kind already provides StorageClass `standard` (local-path); do not add another provisioner. PVCs use `standard` — node-local disk, not cloud durability.
+`deploy/manifests`: kustomize overlay. Namespace `clickhouse-lab` has Pod Security `restricted` (`enforce`/`audit`/`warn`). `clickhouse/` is a single-node official `clickhouse-server` StatefulSet (digest-pinned `26.3.20.7`), ClusterIP + headless Services, ConfigMap listen on `0.0.0.0`, lab Secret password `clickhouse-lab`, uid 101. Kind already provides StorageClass `standard` (local-path); do not add another provisioner. The STS `volumeClaimTemplates` PVC uses `standard` — node-local disk, not cloud durability. Verify with `clickhouse-client --password clickhouse-lab --query "SELECT 1"` inside the pod. Pod must land on a worker.

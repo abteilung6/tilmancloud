@@ -5,11 +5,13 @@ CLUSTER_NAME ?= tilmancloud
 KIND_CONFIG ?= deploy/kind/cluster.yaml
 MANIFESTS ?= deploy/manifests
 CLUSTER_CREATE_ATTEMPTS ?= 3
+CLICKHOUSE_NS ?= clickhouse-lab
+CLICKHOUSE_STS ?= clickhouse
 
 # Prefer project-local binaries if present; Make does not download them.
 export PATH := $(CURDIR)/bin:$(PATH)
 
-.PHONY: help check cluster-up cluster-down apply env
+.PHONY: help check cluster-up cluster-down apply env clickhouse-wait
 
 help: ## Show targets
 	@awk 'BEGIN {FS = ":.*##"} /^[a-zA-Z0-9_-]+:.*##/ {printf "  %-18s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -21,7 +23,7 @@ check:
 	}
 	@docker info >/dev/null 2>&1 || { echo "Docker daemon is not running."; exit 1; }
 
-cluster-up: check ## Create the local Kind cluster, wait until nodes are Ready, apply lab manifests
+cluster-up: check ## Create the local Kind cluster, apply lab manifests, wait for ClickHouse
 	@if kind get clusters 2>/dev/null | grep -qx '$(CLUSTER_NAME)'; then \
 		echo "cluster $(CLUSTER_NAME) already exists"; \
 	else \
@@ -47,9 +49,13 @@ cluster-up: check ## Create the local Kind cluster, wait until nodes are Ready, 
 	fi
 	kubectl get nodes -L topology.kubernetes.io/zone,node-role.kubernetes.io/control-plane
 	@$(MAKE) apply
+	@$(MAKE) clickhouse-wait
 
 apply: check ## Apply lab manifests with kustomize
 	kubectl apply -k $(MANIFESTS)
+
+clickhouse-wait: check ## Wait until the lab ClickHouse StatefulSet is Ready
+	kubectl rollout status sts/$(CLICKHOUSE_STS) -n $(CLICKHOUSE_NS) --timeout=10m
 
 env: ## Print export PATH so the shell can use ./bin
 	@echo 'export PATH="$(CURDIR)/bin:$$PATH"'
