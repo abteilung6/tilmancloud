@@ -14,11 +14,11 @@ No README for Make. Extend this file when targets change.
 From repo root. Prefer Make over raw `kind`/`kubectl`.
 
 ```bash
-make cluster-up      # create tilmancloud if missing; wait for 4 Ready nodes
+make cluster-up      # create tilmancloud if missing; retry create; wait for 4 Ready nodes
 make cluster-down    # delete cluster (idempotent)
 ```
 
-Make does not install CLIs. Recreate = down then up. `cluster-down` is Kind-delete only.
+Make does not install CLIs. Recreate = down then up. `cluster-down` is Kind-delete only. `cluster-up` retries `kind create` up to 3 times because kubeadm can time out before the API server accepts the bootstrap ClusterRoleBinding. Control-plane `InitConfiguration.timeouts.kubernetesAPICall` is 4m (kubeadm default is 1m).
 
 ## CLIs
 

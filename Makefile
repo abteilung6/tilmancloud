@@ -3,6 +3,7 @@ SHELL := /bin/bash
 
 CLUSTER_NAME ?= tilmancloud
 KIND_CONFIG ?= deploy/kind/cluster.yaml
+CLUSTER_CREATE_ATTEMPTS ?= 3
 
 # Prefer project-local binaries if present; Make does not download them.
 export PATH := $(CURDIR)/bin:$(PATH)
@@ -23,7 +24,19 @@ cluster-up: check ## Create the local Kind cluster and wait until nodes are Read
 	@if kind get clusters 2>/dev/null | grep -qx '$(CLUSTER_NAME)'; then \
 		echo "cluster $(CLUSTER_NAME) already exists"; \
 	else \
-		kind create cluster --name $(CLUSTER_NAME) --config $(KIND_CONFIG) --wait 5m; \
+		ok=0; \
+		for i in $$(seq 1 $(CLUSTER_CREATE_ATTEMPTS)); do \
+			echo "creating cluster $(CLUSTER_NAME) (attempt $$i/$(CLUSTER_CREATE_ATTEMPTS))"; \
+			if kind create cluster --name $(CLUSTER_NAME) --config $(KIND_CONFIG) --wait 5m; then \
+				ok=1; \
+				break; \
+			fi; \
+			kind delete cluster --name $(CLUSTER_NAME) >/dev/null 2>&1 || true; \
+		done; \
+		if [ "$$ok" -ne 1 ]; then \
+			echo "failed to create cluster $(CLUSTER_NAME) after $(CLUSTER_CREATE_ATTEMPTS) attempts"; \
+			exit 1; \
+		fi; \
 	fi
 	kubectl wait --for=condition=Ready node --all --timeout=180s
 	@count="$$(kubectl get nodes --no-headers | wc -l | tr -d ' ')"; \

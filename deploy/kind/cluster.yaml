@@ -12,6 +12,8 @@ nodes:
           taints:
             - key: node-role.kubernetes.io/control-plane
               effect: NoSchedule
+        timeouts:
+          kubernetesAPICall: 4m0s
   - role: worker
     labels:
       topology.kubernetes.io/zone: eu-central-1a
