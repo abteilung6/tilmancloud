@@ -3,12 +3,13 @@ SHELL := /bin/bash
 
 CLUSTER_NAME ?= tilmancloud
 KIND_CONFIG ?= deploy/kind/cluster.yaml
+MANIFESTS ?= deploy/manifests
 CLUSTER_CREATE_ATTEMPTS ?= 3
 
 # Prefer project-local binaries if present; Make does not download them.
 export PATH := $(CURDIR)/bin:$(PATH)
 
-.PHONY: help check cluster-up cluster-down
+.PHONY: help check cluster-up cluster-down apply
 
 help: ## Show targets
 	@awk 'BEGIN {FS = ":.*##"} /^[a-zA-Z0-9_-]+:.*##/ {printf "  %-18s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -20,7 +21,7 @@ check:
 	}
 	@docker info >/dev/null 2>&1 || { echo "Docker daemon is not running."; exit 1; }
 
-cluster-up: check ## Create the local Kind cluster and wait until nodes are Ready
+cluster-up: check ## Create the local Kind cluster, wait until nodes are Ready, apply lab manifests
 	@if kind get clusters 2>/dev/null | grep -qx '$(CLUSTER_NAME)'; then \
 		echo "cluster $(CLUSTER_NAME) already exists"; \
 	else \
@@ -45,6 +46,10 @@ cluster-up: check ## Create the local Kind cluster and wait until nodes are Read
 		exit 1; \
 	fi
 	kubectl get nodes -L topology.kubernetes.io/zone,node-role.kubernetes.io/control-plane
+	@$(MAKE) apply
+
+apply: check ## Apply lab manifests with kustomize
+	kubectl apply -k $(MANIFESTS)
 
 cluster-down: check ## Delete the local Kind cluster
 	kind delete cluster --name $(CLUSTER_NAME)

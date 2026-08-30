@@ -1,0 +1,14 @@
+# Kind ships StorageClass standard via local-path-provisioner.
+# PVCs in this namespace should use storageClassName: standard.
+# That is node-local disk: it survives pod delete, not cluster-down.
+# Do not install another provisioner for the lab.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: clickhouse-lab
+  labels:
+    app.kubernetes.io/part-of: tilmancloud
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/enforce-version: latest
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted

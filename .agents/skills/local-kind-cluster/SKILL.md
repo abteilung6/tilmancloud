@@ -1,8 +1,9 @@
 ---
 name: local-kind-cluster
 description: >-
-  Local Kind lab for tilmancloud. Use when running cluster-up/cluster-down,
-  editing deploy/kind/cluster.yaml, adding Make targets, or installing kind/kubectl.
+  Local Kind lab for tilmancloud. Use when running cluster-up/cluster-down/apply,
+  editing deploy/kind/cluster.yaml or deploy/manifests, adding Make targets,
+  or installing kind/kubectl.
 ---
 
 # Local Kind cluster
@@ -14,11 +15,12 @@ No README for Make. Extend this file when targets change.
 From repo root. Prefer Make over raw `kind`/`kubectl`.
 
 ```bash
-make cluster-up      # create tilmancloud if missing; retry create; wait for 4 Ready nodes
+make cluster-up      # create tilmancloud if missing; retry create; wait for 4 Ready nodes; apply lab
 make cluster-down    # delete cluster (idempotent)
+make apply           # kubectl apply -k deploy/manifests
 ```
 
-Make does not install CLIs. Recreate = down then up. `cluster-down` is Kind-delete only. `cluster-up` retries `kind create` up to 3 times because kubeadm can time out before the API server accepts the bootstrap ClusterRoleBinding. Control-plane `InitConfiguration.timeouts.kubernetesAPICall` is 4m (kubeadm default is 1m).
+Make does not install CLIs. Recreate = down then up. `cluster-down` is Kind-delete only; the namespace dies with the cluster. `cluster-up` retries `kind create` up to 3 times because kubeadm can time out before the API server accepts the bootstrap ClusterRoleBinding. Control-plane `InitConfiguration.timeouts.kubernetesAPICall` is 4m (kubeadm default is 1m). After nodes are Ready, `cluster-up` runs `apply`.
 
 ## CLIs
 
@@ -35,3 +37,7 @@ Do not pin `image:` in `cluster.yaml` until a Kubernetes SKU is required.
 ## Cluster
 
 `deploy/kind/cluster.yaml`: 1 control-plane + 3 workers. Kind `role` = Node (Docker container with kubelet), not a Pod. Control-plane is `NoSchedule`. Zone labels are for later topology spread.
+
+## Lab
+
+`deploy/manifests`: kustomize overlay. Today that is Namespace `clickhouse-lab` with Pod Security `restricted` (`enforce`/`audit`/`warn`). Later ClickHouse YAML is appended here. Kind already provides StorageClass `standard` (local-path); do not add another provisioner. PVCs use `standard` — node-local disk, not cloud durability.
