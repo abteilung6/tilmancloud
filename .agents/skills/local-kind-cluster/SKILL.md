@@ -1,7 +1,7 @@
 ---
 name: local-kind-cluster
 description: >-
-  Local Kind lab for tilmancloud. Use when running cluster-up/cluster-down/apply/env/clickhouse-wait/verify-clickhouse,
+  Local Kind lab for tilmancloud. Use when running cluster-up/cluster-down/apply/env/clickhouse-wait/verify-clickhouse/apply-reference/apply-headlamp,
   editing deploy/kind/cluster.yaml or deploy/manifests, adding Make targets,
   or installing kind/kubectl.
 ---
@@ -20,10 +20,12 @@ make cluster-down    # delete cluster (idempotent)
 make apply           # kubectl apply -k deploy/manifests
 make clickhouse-wait # kubectl rollout status sts/clickhouse -n clickhouse-lab
 make verify-clickhouse # insert, delete clickhouse-0, data+DNS still work
+make apply-reference # cert-manager + official operator (opt-in; not cluster-up)
+make apply-headlamp  # Headlamp UI in namespace headlamp (opt-in; not cluster-up)
 make env             # print export PATH for ./bin; eval "$(make env)"
 ```
 
-Make does not install CLIs. Recreate = down then up. `cluster-down` is Kind-delete only; the namespace and PVCs die with the cluster. `cluster-up` retries `kind create` up to 3 times because kubeadm can time out before the API server accepts the bootstrap ClusterRoleBinding. Control-plane `InitConfiguration.timeouts.kubernetesAPICall` is 4m (kubeadm default is 1m). After nodes are Ready, `cluster-up` runs `apply` then `clickhouse-wait` (10m — first image pull of the pinned ClickHouse digest is slow).
+Make does not install CLIs. Recreate = down then up. `cluster-down` is Kind-delete only; the namespace and PVCs die with the cluster. `cluster-up` retries `kind create` up to 3 times because kubeadm can time out before the API server accepts the bootstrap ClusterRoleBinding. Control-plane `InitConfiguration.timeouts.kubernetesAPICall` is 4m (kubeadm default is 1m). After nodes are Ready, `cluster-up` runs `apply` then `clickhouse-wait` (10m — first image pull of the pinned ClickHouse digest is slow). `apply-reference` (`scripts/apply-reference.sh`) is opt-in study-only: fetch pinned cert-manager + ClickHouse/clickhouse-operator release YAML, apply, wait. Operator apply is `--server-side`. `apply-headlamp` is opt-in Headlamp (digest-pinned v0.45.0, namespace `headlamp`, ClusterIP + port-forward; Kubernetes Dashboard is unmaintained). Do not add either to `cluster-up`. Do not apply a ClickHouseCluster into `clickhouse-lab`; `sts/clickhouse` must have no ownerReferences. Inspect commands live in `deploy/reference/README.md`.
 
 ## CLIs
 

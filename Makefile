@@ -7,11 +7,16 @@ MANIFESTS ?= deploy/manifests
 CLUSTER_CREATE_ATTEMPTS ?= 3
 CLICKHOUSE_NS ?= clickhouse-lab
 CLICKHOUSE_STS ?= clickhouse
+CERT_MANAGER_VERSION ?= v1.19.2
+CERT_MANAGER_URL ?= https://github.com/cert-manager/cert-manager/releases/download/$(CERT_MANAGER_VERSION)/cert-manager.yaml
+CLICKHOUSE_OPERATOR_VERSION ?= v0.0.7
+CLICKHOUSE_OPERATOR_URL ?= https://github.com/ClickHouse/clickhouse-operator/releases/download/$(CLICKHOUSE_OPERATOR_VERSION)/clickhouse-operator.yaml
+CLICKHOUSE_OPERATOR_NS ?= clickhouse-operator-system
 
 # Prefer project-local binaries if present; Make does not download them.
 export PATH := $(CURDIR)/bin:$(PATH)
 
-.PHONY: help check cluster-up cluster-down apply env clickhouse-wait verify-clickhouse
+.PHONY: help check cluster-up cluster-down apply env clickhouse-wait verify-clickhouse apply-reference apply-headlamp
 
 help: ## Show targets
 	@awk 'BEGIN {FS = ":.*##"} /^[a-zA-Z0-9_-]+:.*##/ {printf "  %-18s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -59,6 +64,20 @@ clickhouse-wait: check ## Wait until the lab ClickHouse StatefulSet is Ready
 
 verify-clickhouse: check ## Insert rows, delete the pod, confirm data and headless DNS
 	CLICKHOUSE_NS=$(CLICKHOUSE_NS) CLICKHOUSE_STS=$(CLICKHOUSE_STS) ./scripts/verify-clickhouse.sh
+
+apply-reference: check ## Install cert-manager and the official ClickHouse operator (study only)
+	CERT_MANAGER_URL=$(CERT_MANAGER_URL) \
+		CLICKHOUSE_OPERATOR_URL=$(CLICKHOUSE_OPERATOR_URL) \
+		CLICKHOUSE_OPERATOR_NS=$(CLICKHOUSE_OPERATOR_NS) \
+		./scripts/apply-reference.sh
+
+apply-headlamp: check ## Install Headlamp UI (study only; not cluster-up)
+	kubectl apply -k deploy/reference/headlamp
+	kubectl wait --for=condition=Available deploy/headlamp -n headlamp --timeout=10m
+	@echo "Headlamp token (paste in the UI):"
+	kubectl -n headlamp create token headlamp --duration=24h
+	@echo "Access: kubectl -n headlamp port-forward svc/headlamp 8080:80"
+	@echo "then open http://127.0.0.1:8080"
 
 env: ## Print export PATH so the shell can use ./bin
 	@echo 'export PATH="$(CURDIR)/bin:$$PATH"'
