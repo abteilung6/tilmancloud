@@ -6,6 +6,8 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -60,8 +62,43 @@ func (r *ClickHouseServiceReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		}
 	}
 
+	if err := r.syncStatus(ctx, &obj); err != nil {
+		return ctrl.Result{}, err
+	}
+
 	logger.Info("applied lab-shaped children", "namespace", req.Namespace, "name", req.Name)
 	return ctrl.Result{}, nil
+}
+
+func (r *ClickHouseServiceReconciler) syncStatus(ctx context.Context, obj *clickhousev1alpha1.ClickHouseService) error {
+	cond := metav1.Condition{
+		Type:               "Ready",
+		ObservedGeneration: obj.Generation,
+	}
+	ready := int32(0)
+
+	var sts appsv1.StatefulSet
+	err := r.Get(ctx, client.ObjectKeyFromObject(obj), &sts)
+	switch {
+	case apierrors.IsNotFound(err):
+		cond.Status = metav1.ConditionFalse
+		cond.Reason = "StatefulSetNotFound"
+	case err != nil:
+		return err
+	case sts.Status.ReadyReplicas == 1:
+		ready = 1
+		cond.Status = metav1.ConditionTrue
+		cond.Reason = "StatefulSetReady"
+	default:
+		ready = sts.Status.ReadyReplicas
+		cond.Status = metav1.ConditionFalse
+		cond.Reason = "StatefulSetNotReady"
+	}
+
+	orig := obj.DeepCopy()
+	obj.Status.ReadyReplicas = ready
+	meta.SetStatusCondition(&obj.Status.Conditions, cond)
+	return r.Status().Patch(ctx, obj, client.MergeFrom(orig))
 }
 
 func (r *ClickHouseServiceReconciler) SetupWithManager(mgr ctrl.Manager) error {

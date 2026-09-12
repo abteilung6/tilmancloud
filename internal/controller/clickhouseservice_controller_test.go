@@ -41,6 +41,35 @@ func testScheme(t *testing.T) *runtime.Scheme {
 	return scheme
 }
 
+func newReconciler(t *testing.T, objs ...client.Object) *ClickHouseServiceReconciler {
+	t.Helper()
+	scheme := testScheme(t)
+	return &ClickHouseServiceReconciler{
+		Client: fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(objs...).
+			WithStatusSubresource(&clickhousev1alpha1.ClickHouseService{}, &appsv1.StatefulSet{}).
+			Build(),
+		Scheme: scheme,
+	}
+}
+
+func readyStatus(t *testing.T, r *ClickHouseServiceReconciler, ns, name string) (string, int32) {
+	t.Helper()
+	var obj clickhousev1alpha1.ClickHouseService
+	if err := r.Get(context.Background(), types.NamespacedName{Namespace: ns, Name: name}, &obj); err != nil {
+		t.Fatal(err)
+	}
+	c := metav1.Condition{}
+	for _, cond := range obj.Status.Conditions {
+		if cond.Type == "Ready" {
+			c = cond
+			break
+		}
+	}
+	return string(c.Status), obj.Status.ReadyReplicas
+}
+
 func sampleCR(namespace string) *clickhousev1alpha1.ClickHouseService {
 	return &clickhousev1alpha1.ClickHouseService{
 		TypeMeta: metav1.TypeMeta{
@@ -56,11 +85,7 @@ func sampleCR(namespace string) *clickhousev1alpha1.ClickHouseService {
 }
 
 func TestReconcileExistingClickHouseService(t *testing.T) {
-	scheme := testScheme(t)
-	r := &ClickHouseServiceReconciler{
-		Client: fake.NewClientBuilder().WithScheme(scheme).WithObjects(sampleCR("clickhouse-managed")).Build(),
-		Scheme: scheme,
-	}
+	r := newReconciler(t, sampleCR("clickhouse-managed"))
 
 	result, err := r.Reconcile(context.Background(), sameRequest())
 	if err != nil {
@@ -105,14 +130,15 @@ func TestReconcileExistingClickHouseService(t *testing.T) {
 	if len(sts.OwnerReferences) != 1 || sts.OwnerReferences[0].Kind != "ClickHouseService" {
 		t.Fatalf("ownerReferences %+v", sts.OwnerReferences)
 	}
+
+	got, replicas := readyStatus(t, r, ns, "clickhouse")
+	if got != "False" || replicas != 0 {
+		t.Fatalf("Ready=%s readyReplicas=%d, want False/0 before the pod is up", got, replicas)
+	}
 }
 
 func TestReconcileMissingClickHouseService(t *testing.T) {
-	scheme := testScheme(t)
-	r := &ClickHouseServiceReconciler{
-		Client: fake.NewClientBuilder().WithScheme(scheme).Build(),
-		Scheme: scheme,
-	}
+	r := newReconciler(t)
 
 	result, err := r.Reconcile(context.Background(), sameRequest())
 	if err != nil {
@@ -123,12 +149,32 @@ func TestReconcileMissingClickHouseService(t *testing.T) {
 	}
 }
 
-func TestReconcileRefusesLabNamespace(t *testing.T) {
-	scheme := testScheme(t)
-	r := &ClickHouseServiceReconciler{
-		Client: fake.NewClientBuilder().WithScheme(scheme).WithObjects(sampleCR("clickhouse-lab")).Build(),
-		Scheme: scheme,
+func TestReconcileSetsReadyWhenStatefulSetReady(t *testing.T) {
+	r := newReconciler(t, sampleCR("clickhouse-managed"))
+	if _, err := r.Reconcile(context.Background(), sameRequest()); err != nil {
+		t.Fatal(err)
 	}
+
+	var sts appsv1.StatefulSet
+	if err := r.Get(context.Background(), types.NamespacedName{Namespace: "clickhouse-managed", Name: "clickhouse"}, &sts); err != nil {
+		t.Fatal(err)
+	}
+	sts.Status.ReadyReplicas = 1
+	if err := r.Status().Update(context.Background(), &sts); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := r.Reconcile(context.Background(), sameRequest()); err != nil {
+		t.Fatal(err)
+	}
+	got, replicas := readyStatus(t, r, "clickhouse-managed", "clickhouse")
+	if got != "True" || replicas != 1 {
+		t.Fatalf("Ready=%s readyReplicas=%d", got, replicas)
+	}
+}
+
+func TestReconcileRefusesLabNamespace(t *testing.T) {
+	r := newReconciler(t, sampleCR("clickhouse-lab"))
 
 	req := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: "clickhouse-lab", Name: "clickhouse"}}
 	if _, err := r.Reconcile(context.Background(), req); err != nil {

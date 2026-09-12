@@ -9,8 +9,7 @@ import (
 // storage stay hardcoded in the reconciler until we have a reason to change them.
 type ClickHouseServiceSpec struct{}
 
-// ClickHouseServiceStatus is what the controller observed.
-// ReadyReplicas and Conditions are reserved; nothing writes them yet.
+// ClickHouseServiceStatus is copied from the owned StatefulSet.
 type ClickHouseServiceStatus struct {
 	// ReadyReplicas is ready pods on the owned StatefulSet.
 	// +optional

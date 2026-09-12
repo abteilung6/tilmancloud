@@ -50,7 +50,7 @@ Words we use in this repo. Short meanings only. Kubernetes short names in parent
 
 **v1alpha1** — First API version. We may change the schema later.
 
-**spec** — What you asked for. **status** — What a controller observed. Nothing writes our status yet.
+**spec** — What you asked for. **status** — What the controller observed. `Ready` follows the owned StatefulSet.
 
 **sample-request.yaml** — Example `kubectl apply` body for a ClickHouseService. Stores the Custom Resource only.
 
