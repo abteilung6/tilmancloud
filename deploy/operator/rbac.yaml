@@ -1,8 +1,19 @@
-# For an in-cluster ServiceAccount later. make operator-run uses your kubeconfig.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: clickhouseservice
+  namespace: tilmancloud-system
+  labels:
+    app.kubernetes.io/name: clickhouseservice
+    app.kubernetes.io/part-of: tilmancloud
+---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: clickhouseservice-manager
+  labels:
+    app.kubernetes.io/name: clickhouseservice
+    app.kubernetes.io/part-of: tilmancloud
 rules:
   - apiGroups: ["clickhouse.tilmancloud.io"]
     resources: ["clickhouseservices"]
@@ -16,3 +27,25 @@ rules:
   - apiGroups: ["apps"]
     resources: ["statefulsets"]
     verbs: ["get", "list", "watch", "create", "update", "patch"]
+  - apiGroups: ["coordination.k8s.io"]
+    resources: ["leases"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: clickhouseservice-manager
+  labels:
+    app.kubernetes.io/name: clickhouseservice
+    app.kubernetes.io/part-of: tilmancloud
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: clickhouseservice-manager
+subjects:
+  - kind: ServiceAccount
+    name: clickhouseservice
+    namespace: tilmancloud-system

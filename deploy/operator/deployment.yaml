@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: clickhouseservice
+  namespace: tilmancloud-system
+  labels:
+    app.kubernetes.io/name: clickhouseservice
+    app.kubernetes.io/part-of: tilmancloud
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: clickhouseservice
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: clickhouseservice
+        app.kubernetes.io/part-of: tilmancloud
+    spec:
+      serviceAccountName: clickhouseservice
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: manager
+          image: tilmancloud-operator:dev
+          imagePullPolicy: IfNotPresent
+          args:
+            - --leader-elect=true
+          env:
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              cpu: 20m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+      nodeSelector:
+        kubernetes.io/os: linux

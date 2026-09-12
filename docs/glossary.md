@@ -68,7 +68,11 @@ Words we use in this repo. Short meanings only. Kubernetes short names in parent
 
 **Owns** — Watch child kinds (ConfigMap, Secret, Service, StatefulSet) so a change to a child runs Reconcile again.
 
-**operator-run** — `go run ./cmd/operator` using your kubeconfig. Not a Deployment yet.
+**operator-run** — `go run ./cmd/operator` using your kubeconfig. Laptop inner loop.
+
+**apply-operator** — Docker build + `kind load` + Deployment in `tilmancloud-system`. Not part of `cluster-up`.
+
+**tilmancloud-system** — Namespace for our operator process. Not `clickhouse-operator-system`.
 
 **Operator** — A controller plus the types it owns. “Our operator” ≠ ClickHouse Inc’s operator.
 

@@ -16,7 +16,7 @@ CLICKHOUSE_OPERATOR_NS ?= clickhouse-operator-system
 # Prefer project-local binaries if present; Make does not download them.
 export PATH := $(CURDIR)/bin:$(PATH)
 
-.PHONY: help check cluster-up cluster-down apply env clickhouse-wait verify-clickhouse apply-reference apply-headlamp operator-generate operator-run operator-test
+.PHONY: help check cluster-up cluster-down apply env clickhouse-wait verify-clickhouse apply-reference apply-headlamp operator-generate operator-run operator-test apply-operator
 
 help: ## Show targets
 	@awk 'BEGIN {FS = ":.*##"} /^[a-zA-Z0-9_-]+:.*##/ {printf "  %-18s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -84,11 +84,20 @@ operator-generate: ## Generate CRD and DeepCopy from api/v1alpha1
 	go tool controller-gen object paths=./api/...
 	go tool controller-gen crd paths=./api/... output:crd:artifacts:config=deploy/operator/crd
 
-operator-run: ## Run the operator against the current kubeconfig (no StatefulSet yet)
+operator-run: ## Run the operator against the current kubeconfig
 	go run ./cmd/operator --leader-elect=true
 
 operator-test: ## Test Reconcile with the same Request the manager passes in
 	go test ./internal/controller/ -count=1
+
+OPERATOR_IMAGE ?= tilmancloud-operator:dev
+
+apply-operator: check ## Build the operator image, load it into Kind, apply CRD and Deployment
+	docker build -t $(OPERATOR_IMAGE) .
+	kind load docker-image $(OPERATOR_IMAGE) --name $(CLUSTER_NAME)
+	kubectl apply -k deploy/operator
+	kubectl wait --for=condition=Available deploy/clickhouseservice -n tilmancloud-system --timeout=5m
+	kubectl apply -f deploy/operator/sample-request.yaml
 
 env: ## Print export PATH so the shell can use ./bin
 	@echo 'export PATH="$(CURDIR)/bin:$$PATH"'

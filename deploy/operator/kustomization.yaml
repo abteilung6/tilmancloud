@@ -1,4 +1,7 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
+  - namespace.yaml
   - crd/clickhouse.tilmancloud.io_clickhouseservices.yaml
+  - rbac.yaml
+  - deployment.yaml

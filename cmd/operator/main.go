@@ -29,13 +29,16 @@ func main() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	utilruntime.Must(clickhousev1alpha1.AddToScheme(scheme))
 
-	// LeaderElectionNamespace is default because operator-run is out of cluster.
-	// In-cluster deploy will set the operator namespace later.
+	leaderNS := "default"
+	if ns := os.Getenv("POD_NAMESPACE"); ns != "" {
+		leaderNS = ns
+	}
+
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:                  scheme,
 		LeaderElection:          leaderElect,
 		LeaderElectionID:        "clickhouseservice.tilmancloud.io",
-		LeaderElectionNamespace: "default",
+		LeaderElectionNamespace: leaderNS,
 		Metrics:                 metricsserver.Options{BindAddress: "0"},
 	})
 	if err != nil {

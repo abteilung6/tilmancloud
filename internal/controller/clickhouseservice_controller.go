@@ -27,6 +27,8 @@ type ClickHouseServiceReconciler struct {
 // +kubebuilder:rbac:groups=clickhouse.tilmancloud.io,resources=clickhouseservices/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups="",resources=services;configmaps;secrets,verbs=get;list;watch;create;update;patch
 // +kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=get;list;watch;create;update;patch
+// +kubebuilder:rbac:groups=coordination.k8s.io,resources=leases,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups="",resources=events,verbs=create;patch
 
 // Reconcile is called with a namespace+name key after a ClickHouseService
 // is created, updated, or deleted. Read the object again; do not trust a diff.
