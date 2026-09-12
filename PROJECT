@@ -1,0 +1,19 @@
+# Kubebuilder project metadata. Written by hand so we do not need the CLI.
+# Later `kubebuilder create api` reads this. Do not add a second domain.
+domain: tilmancloud.io
+layout:
+  - go.kubebuilder.io/v4
+projectName: tilmancloud
+repo: github.com/abteilung6/tilmancloud
+version: "3"
+resources:
+  - api:
+      crdVersion: v1
+      namespaced: true
+    controller: false
+    domain: tilmancloud.io
+    group: clickhouse
+    kind: ClickHouseService
+    path: github.com/abteilung6/tilmancloud/api/v1alpha1
+    plural: clickhouseservices
+    version: v1alpha1

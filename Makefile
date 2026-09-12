@@ -16,7 +16,7 @@ CLICKHOUSE_OPERATOR_NS ?= clickhouse-operator-system
 # Prefer project-local binaries if present; Make does not download them.
 export PATH := $(CURDIR)/bin:$(PATH)
 
-.PHONY: help check cluster-up cluster-down apply env clickhouse-wait verify-clickhouse apply-reference apply-headlamp
+.PHONY: help check cluster-up cluster-down apply env clickhouse-wait verify-clickhouse apply-reference apply-headlamp operator-generate
 
 help: ## Show targets
 	@awk 'BEGIN {FS = ":.*##"} /^[a-zA-Z0-9_-]+:.*##/ {printf "  %-18s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -78,6 +78,11 @@ apply-headlamp: check ## Install Headlamp UI (study only; not cluster-up)
 	kubectl -n headlamp create token headlamp --duration=24h
 	@echo "Access: kubectl -n headlamp port-forward svc/headlamp 8080:80"
 	@echo "then open http://127.0.0.1:8080"
+
+# controller-gen via go tool (see go.mod). Does not download into ./bin.
+operator-generate: ## Generate CRD and DeepCopy from api/v1alpha1
+	go tool controller-gen object paths=./api/...
+	go tool controller-gen crd paths=./api/... output:crd:artifacts:config=deploy/operator/crd
 
 env: ## Print export PATH so the shell can use ./bin
 	@echo 'export PATH="$(CURDIR)/bin:$$PATH"'
