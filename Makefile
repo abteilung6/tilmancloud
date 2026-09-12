@@ -16,7 +16,7 @@ CLICKHOUSE_OPERATOR_NS ?= clickhouse-operator-system
 # Prefer project-local binaries if present; Make does not download them.
 export PATH := $(CURDIR)/bin:$(PATH)
 
-.PHONY: help check cluster-up cluster-down apply env clickhouse-wait verify-clickhouse apply-reference apply-headlamp operator-generate operator-run operator-test apply-operator
+.PHONY: help check cluster-up cluster-down apply env clickhouse-wait verify-clickhouse verify-managed apply-reference apply-headlamp operator-generate operator-run operator-test apply-operator
 
 help: ## Show targets
 	@awk 'BEGIN {FS = ":.*##"} /^[a-zA-Z0-9_-]+:.*##/ {printf "  %-18s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -64,6 +64,9 @@ clickhouse-wait: check ## Wait until the lab ClickHouse StatefulSet is Ready
 
 verify-clickhouse: check ## Insert rows, delete the pod, confirm data and headless DNS
 	CLICKHOUSE_NS=$(CLICKHOUSE_NS) CLICKHOUSE_STS=$(CLICKHOUSE_STS) ./scripts/verify-clickhouse.sh
+
+verify-managed: check ## Same check on the operator-owned ClickHouse; fail if the lab STS was adopted
+	./scripts/verify-managed.sh
 
 apply-reference: check ## Install cert-manager and the official ClickHouse operator (study only)
 	CERT_MANAGER_URL=$(CERT_MANAGER_URL) \

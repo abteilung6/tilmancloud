@@ -97,3 +97,5 @@ Words we use in this repo. Short meanings only. Kubernetes short names in parent
 **Headlamp** — Cluster web UI. Needs `kubectl port-forward` and a token.
 
 **`make apply-reference`** — Installs cert-manager + the official operator. Not part of `cluster-up`.
+
+**`make verify-managed`** — Persist + headless DNS on `clickhouse-managed`. Fails if the lab StatefulSet has ownerReferences.
