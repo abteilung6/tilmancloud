@@ -58,9 +58,15 @@ Words we use in this repo. Short meanings only. Kubernetes short names in parent
 
 ## Controllers
 
-**Controller / reconciler** — A loop: see a Custom Resource, make the cluster match. Ours currently only logs the name.
+**Controller / reconciler** — A loop: see a Custom Resource, make the cluster match. Ours applies ConfigMap, Secret, Services, and StatefulSet in `clickhouse-managed`, not in `clickhouse-lab`.
 
 **Reconcile** — One turn of that loop. Input is a **Request**: namespace + name only. The function then `Get`s the current ClickHouseService.
+
+**Server-Side Apply** — Tell the API server the whole desired object and let it merge fields. We use `Patch(..., client.Apply)` instead of Create-then-Update.
+
+**FieldOwner** — Name stamped on fields we last wrote (`clickhouse-service`). Other owners can write other fields without a fight unless we set **ForceOwnership**.
+
+**Owns** — Watch child kinds (ConfigMap, Secret, Service, StatefulSet) so a change to a child runs Reconcile again.
 
 **operator-run** — `go run ./cmd/operator` using your kubeconfig. Not a Deployment yet.
 

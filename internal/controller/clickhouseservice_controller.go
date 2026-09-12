@@ -3,6 +3,8 @@ package controller
 import (
 	"context"
 
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -12,8 +14,8 @@ import (
 	clickhousev1alpha1 "github.com/abteilung6/tilmancloud/api/v1alpha1"
 )
 
-// ClickHouseServiceReconciler watches ClickHouseService.
-// It does not create a StatefulSet yet.
+// ClickHouseServiceReconciler watches ClickHouseService and applies the
+// lab-shaped ConfigMap, Secret, Services, and StatefulSet.
 type ClickHouseServiceReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
@@ -21,6 +23,8 @@ type ClickHouseServiceReconciler struct {
 
 // +kubebuilder:rbac:groups=clickhouse.tilmancloud.io,resources=clickhouseservices,verbs=get;list;watch
 // +kubebuilder:rbac:groups=clickhouse.tilmancloud.io,resources=clickhouseservices/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups="",resources=services;configmaps;secrets,verbs=get;list;watch;create;update;patch
+// +kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=get;list;watch;create;update;patch
 
 // Reconcile is called with a namespace+name key after a ClickHouseService
 // is created, updated, or deleted. Read the object again; do not trust a diff.
@@ -35,13 +39,38 @@ func (r *ClickHouseServiceReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		return ctrl.Result{}, err
 	}
 
-	logger.Info("reconcile ClickHouseService", "namespace", req.Namespace, "name", req.Name)
+	if obj.Namespace == labNamespace {
+		logger.Info("refusing to reconcile in the lab namespace", "namespace", obj.Namespace)
+		return ctrl.Result{}, nil
+	}
+
+	children := []client.Object{
+		desiredConfigMap(&obj),
+		desiredSecret(&obj),
+		desiredService(&obj),
+		desiredHeadlessService(&obj),
+		desiredStatefulSet(&obj),
+	}
+	for _, child := range children {
+		if err := ctrl.SetControllerReference(&obj, child, r.Scheme); err != nil {
+			return ctrl.Result{}, err
+		}
+		if err := r.Patch(ctx, child, client.Apply, client.ForceOwnership, client.FieldOwner(fieldOwner)); err != nil {
+			return ctrl.Result{}, err
+		}
+	}
+
+	logger.Info("applied lab-shaped children", "namespace", req.Namespace, "name", req.Name)
 	return ctrl.Result{}, nil
 }
 
 func (r *ClickHouseServiceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&clickhousev1alpha1.ClickHouseService{}).
+		Owns(&corev1.ConfigMap{}).
+		Owns(&corev1.Secret{}).
+		Owns(&corev1.Service{}).
+		Owns(&appsv1.StatefulSet{}).
 		Named("clickhouseservice").
 		Complete(r)
 }

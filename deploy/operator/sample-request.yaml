@@ -1,5 +1,5 @@
 # Example request to the ClickHouseService API.
-# Creates no StatefulSet until a controller exists.
+# The controller applies ConfigMap, Secret, Services, and StatefulSet from this.
 # Namespace is here so apply works before deploy/manifests/managed exists.
 apiVersion: v1
 kind: Namespace
