@@ -58,7 +58,11 @@ Words we use in this repo. Short meanings only. Kubernetes short names in parent
 
 ## Controllers
 
-**Controller / reconciler** — A loop: see a Custom Resource, make the cluster match. Ours is not written yet, so the Custom Resource sits unused.
+**Controller / reconciler** — A loop: see a Custom Resource, make the cluster match. Ours currently only logs the name.
+
+**Reconcile** — One turn of that loop. Input is a **Request**: namespace + name only. The function then `Get`s the current ClickHouseService.
+
+**operator-run** — `go run ./cmd/operator` using your kubeconfig. Not a Deployment yet.
 
 **Operator** — A controller plus the types it owns. “Our operator” ≠ ClickHouse Inc’s operator.
 

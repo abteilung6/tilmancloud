@@ -1,0 +1,12 @@
+# For an in-cluster ServiceAccount later. make operator-run uses your kubeconfig.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: clickhouseservice-manager
+rules:
+  - apiGroups: ["clickhouse.tilmancloud.io"]
+    resources: ["clickhouseservices"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["clickhouse.tilmancloud.io"]
+    resources: ["clickhouseservices/status"]
+    verbs: ["get", "update", "patch"]

@@ -15,6 +15,6 @@ var (
 	// SchemeBuilder registers our types with a runtime.Scheme.
 	SchemeBuilder = &scheme.Builder{GroupVersion: GroupVersion}
 
-	// AddToScheme is called from cmd/operator in the next commit.
+	// AddToScheme registers our types on the manager scheme.
 	AddToScheme = SchemeBuilder.AddToScheme
 )
