@@ -98,4 +98,4 @@ Words we use in this repo. Short meanings only. Kubernetes short names in parent
 
 **`make apply-reference`** — Installs cert-manager + the official operator. Not part of `cluster-up`.
 
-**`make verify-managed`** — Persist + headless DNS on `clickhouse-managed`. Fails if the lab StatefulSet has ownerReferences.
+**`make verify-managed`** — Applies the sample ClickHouseService if missing, then persist + headless DNS on `clickhouse-managed`. Fails if the lab StatefulSet has ownerReferences.
