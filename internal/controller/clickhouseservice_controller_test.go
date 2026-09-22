@@ -173,6 +173,42 @@ func TestReconcileSetsReadyWhenStatefulSetReady(t *testing.T) {
 	}
 }
 
+func TestReconcileSkipsUnmanagedStatefulSet(t *testing.T) {
+	unmanaged := &appsv1.StatefulSet{
+		TypeMeta: metav1.TypeMeta{APIVersion: "apps/v1", Kind: "StatefulSet"},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "clickhouse",
+			Namespace: "clickhouse-managed",
+			Labels:    map[string]string{"app.kubernetes.io/instance": "handwritten"},
+		},
+	}
+	r := newReconciler(t, sampleCR("clickhouse-managed"), unmanaged)
+	if _, err := r.Reconcile(context.Background(), sameRequest()); err != nil {
+		t.Fatal(err)
+	}
+
+	var sts appsv1.StatefulSet
+	if err := r.Get(context.Background(), types.NamespacedName{Namespace: "clickhouse-managed", Name: "clickhouse"}, &sts); err != nil {
+		t.Fatal(err)
+	}
+	if got := sts.Labels["app.kubernetes.io/instance"]; got != "handwritten" {
+		t.Fatalf("adopted unmanaged StatefulSet, instance=%s", got)
+	}
+	if len(sts.OwnerReferences) != 0 {
+		t.Fatalf("ownerReferences %+v", sts.OwnerReferences)
+	}
+
+	var cm corev1.ConfigMap
+	if err := r.Get(context.Background(), types.NamespacedName{Namespace: "clickhouse-managed", Name: "clickhouse"}, &cm); err != nil {
+		t.Fatalf("still create the missing children: %v", err)
+	}
+
+	got, _ := readyStatus(t, r, "clickhouse-managed", "clickhouse")
+	if got != "False" {
+		t.Fatalf("Ready=%s, want False for an unmanaged StatefulSet", got)
+	}
+}
+
 func TestReconcileRefusesLabNamespace(t *testing.T) {
 	r := newReconciler(t, sampleCR("clickhouse-lab"))
 

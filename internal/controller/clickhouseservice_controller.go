@@ -56,10 +56,7 @@ func (r *ClickHouseServiceReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		desiredStatefulSet(&obj),
 	}
 	for _, child := range children {
-		if err := ctrl.SetControllerReference(&obj, child, r.Scheme); err != nil {
-			return ctrl.Result{}, err
-		}
-		if err := r.Patch(ctx, child, client.Apply, client.ForceOwnership, client.FieldOwner(fieldOwner)); err != nil {
+		if err := r.applyChild(ctx, &obj, child); err != nil {
 			return ctrl.Result{}, err
 		}
 	}
@@ -70,6 +67,26 @@ func (r *ClickHouseServiceReconciler) Reconcile(ctx context.Context, req ctrl.Re
 
 	logger.Info("applied lab-shaped children", "namespace", req.Namespace, "name", req.Name)
 	return ctrl.Result{}, nil
+}
+
+func (r *ClickHouseServiceReconciler) applyChild(ctx context.Context, owner *clickhousev1alpha1.ClickHouseService, child client.Object) error {
+	existing := child.DeepCopyObject().(client.Object)
+	err := r.Get(ctx, client.ObjectKeyFromObject(child), existing)
+	if err == nil {
+		if !metav1.IsControlledBy(existing, owner) {
+			log.FromContext(ctx).Info("skipping unmanaged object",
+				"name", child.GetName(),
+				"kind", child.GetObjectKind().GroupVersionKind().Kind)
+			return nil
+		}
+	} else if !apierrors.IsNotFound(err) {
+		return err
+	}
+
+	if err := ctrl.SetControllerReference(owner, child, r.Scheme); err != nil {
+		return err
+	}
+	return r.Patch(ctx, child, client.Apply, client.ForceOwnership, client.FieldOwner(fieldOwner))
 }
 
 func (r *ClickHouseServiceReconciler) syncStatus(ctx context.Context, obj *clickhousev1alpha1.ClickHouseService) error {
@@ -87,6 +104,9 @@ func (r *ClickHouseServiceReconciler) syncStatus(ctx context.Context, obj *click
 		cond.Reason = "StatefulSetNotFound"
 	case err != nil:
 		return err
+	case !metav1.IsControlledBy(&sts, obj):
+		cond.Status = metav1.ConditionFalse
+		cond.Reason = "UnmanagedStatefulSet"
 	case sts.Status.ReadyReplicas == 1:
 		ready = 1
 		cond.Status = metav1.ConditionTrue
