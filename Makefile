@@ -100,7 +100,6 @@ apply-operator: check ## Build the operator image, load it into Kind, apply CRD 
 	kind load docker-image $(OPERATOR_IMAGE) --name $(CLUSTER_NAME)
 	kubectl apply -k deploy/operator
 	kubectl wait --for=condition=Available deploy/clickhouseservice -n tilmancloud-system --timeout=5m
-	kubectl apply -f deploy/operator/sample-request.yaml
 
 env: ## Print export PATH so the shell can use ./bin
 	@echo 'export PATH="$(CURDIR)/bin:$$PATH"'

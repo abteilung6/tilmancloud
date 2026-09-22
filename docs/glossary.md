@@ -70,7 +70,7 @@ Words we use in this repo. Short meanings only. Kubernetes short names in parent
 
 **operator-run** — `go run ./cmd/operator` using your kubeconfig. Laptop inner loop.
 
-**apply-operator** — Docker build + `kind load` + Deployment in `tilmancloud-system`. Not part of `cluster-up`.
+**apply-operator** — Docker build + `kind load` + Deployment in `tilmancloud-system`. Does not create a ClickHouseService. Not part of `cluster-up`.
 
 **tilmancloud-system** — Namespace for our operator process. Not `clickhouse-operator-system`.
 

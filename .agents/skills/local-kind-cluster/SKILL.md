@@ -26,7 +26,7 @@ make apply-headlamp  # Headlamp UI in namespace headlamp (opt-in; not cluster-up
 make operator-generate # CRD + DeepCopy from api/v1alpha1 (go tool controller-gen)
 make operator-run    # watch ClickHouseService against kubeconfig
 make operator-test   # Reconcile unit tests (ctrl.Request namespace+name)
-make apply-operator  # docker build, kind load, apply CRD+Deployment; then sample ClickHouseService
+make apply-operator  # docker build, kind load, apply CRD+Deployment
 make env             # print export PATH for ./bin; eval "$(make env)"
 ```
 
