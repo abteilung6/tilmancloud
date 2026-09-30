@@ -1,13 +1,4 @@
-# Example request to the ClickHouseService API.
-# The controller applies ConfigMap, Secret, Services, and StatefulSet from this.
-# Namespace is here so apply works before deploy/manifests/managed exists.
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: clickhouse-managed
-  labels:
-    app.kubernetes.io/part-of: tilmancloud
----
+# Example ClickHouseService. Namespace clickhouse-managed comes from make apply.
 apiVersion: clickhouse.tilmancloud.io/v1alpha1
 kind: ClickHouseService
 metadata:
