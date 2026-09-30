@@ -91,8 +91,8 @@ func TestReconcileExistingClickHouseService(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Reconcile: %v", err)
 	}
-	if !result.IsZero() {
-		t.Fatalf("expected no requeue, got %+v", result)
+	if result.RequeueAfter != readyRecheck {
+		t.Fatalf("expected requeue after %s while the pod is not Ready, got %+v", readyRecheck, result)
 	}
 
 	ctx := context.Background()
@@ -164,12 +164,16 @@ func TestReconcileSetsReadyWhenStatefulSetReady(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if _, err := r.Reconcile(context.Background(), sameRequest()); err != nil {
+	result, err := r.Reconcile(context.Background(), sameRequest())
+	if err != nil {
 		t.Fatal(err)
 	}
 	got, replicas := readyStatus(t, r, "clickhouse-managed", "clickhouse")
 	if got != "True" || replicas != 1 {
 		t.Fatalf("Ready=%s readyReplicas=%d", got, replicas)
+	}
+	if !result.IsZero() {
+		t.Fatalf("Ready should not requeue, got %+v", result)
 	}
 }
 
@@ -183,8 +187,12 @@ func TestReconcileSkipsUnmanagedStatefulSet(t *testing.T) {
 		},
 	}
 	r := newReconciler(t, sampleCR("clickhouse-managed"), unmanaged)
-	if _, err := r.Reconcile(context.Background(), sameRequest()); err != nil {
+	result, err := r.Reconcile(context.Background(), sameRequest())
+	if err != nil {
 		t.Fatal(err)
+	}
+	if !result.IsZero() {
+		t.Fatalf("unmanaged StatefulSet should not requeue, got %+v", result)
 	}
 
 	var sts appsv1.StatefulSet

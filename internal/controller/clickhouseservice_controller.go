@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -15,6 +16,8 @@ import (
 
 	clickhousev1alpha1 "github.com/abteilung6/tilmancloud/api/v1alpha1"
 )
+
+const readyRecheck = 10 * time.Second
 
 // ClickHouseServiceReconciler watches ClickHouseService and applies the
 // lab-shaped ConfigMap, Secret, Services, and StatefulSet.
@@ -66,6 +69,11 @@ func (r *ClickHouseServiceReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	}
 
 	logger.Info("applied lab-shaped children", "namespace", req.Namespace, "name", req.Name)
+	if c := meta.FindStatusCondition(obj.Status.Conditions, "Ready"); c != nil && c.Status != metav1.ConditionTrue {
+		if c.Reason == "StatefulSetNotFound" || c.Reason == "StatefulSetNotReady" {
+			return ctrl.Result{RequeueAfter: readyRecheck}, nil
+		}
+	}
 	return ctrl.Result{}, nil
 }
 
