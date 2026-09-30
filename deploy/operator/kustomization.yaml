@@ -3,5 +3,6 @@ kind: Kustomization
 resources:
   - namespace.yaml
   - crd/clickhouse.tilmancloud.io_clickhouseservices.yaml
+  - role.yaml
   - rbac.yaml
   - deployment.yaml

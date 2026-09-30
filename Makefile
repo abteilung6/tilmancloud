@@ -83,9 +83,10 @@ apply-headlamp: check ## Install Headlamp UI (study only; not cluster-up)
 	@echo "then open http://127.0.0.1:8080"
 
 # controller-gen via go tool (see go.mod). Does not download into ./bin.
-operator-generate: ## Generate CRD and DeepCopy from api/v1alpha1
+operator-generate: ## Generate CRD, DeepCopy, and ClusterRole
 	go tool controller-gen object paths=./api/...
 	go tool controller-gen crd paths=./api/... output:crd:artifacts:config=deploy/operator/crd
+	go tool controller-gen rbac:roleName=clickhouseservice-manager paths=./internal/controller/... output:rbac:artifacts:config=deploy/operator
 
 operator-run: ## Run the operator against the current kubeconfig
 	go run ./cmd/operator --leader-elect=true

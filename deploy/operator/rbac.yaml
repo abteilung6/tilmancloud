@@ -8,33 +8,6 @@ metadata:
     app.kubernetes.io/part-of: tilmancloud
 ---
 apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: clickhouseservice-manager
-  labels:
-    app.kubernetes.io/name: clickhouseservice
-    app.kubernetes.io/part-of: tilmancloud
-rules:
-  - apiGroups: ["clickhouse.tilmancloud.io"]
-    resources: ["clickhouseservices"]
-    verbs: ["get", "list", "watch"]
-  - apiGroups: ["clickhouse.tilmancloud.io"]
-    resources: ["clickhouseservices/status"]
-    verbs: ["get", "update", "patch"]
-  - apiGroups: [""]
-    resources: ["services", "configmaps", "secrets"]
-    verbs: ["get", "list", "watch", "create", "update", "patch"]
-  - apiGroups: ["apps"]
-    resources: ["statefulsets"]
-    verbs: ["get", "list", "watch", "create", "update", "patch"]
-  - apiGroups: ["coordination.k8s.io"]
-    resources: ["leases"]
-    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
-  - apiGroups: [""]
-    resources: ["events"]
-    verbs: ["create", "patch"]
----
-apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: clickhouseservice-manager

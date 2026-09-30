@@ -86,7 +86,7 @@ Words we use in this repo. Short meanings only. Kubernetes short names in parent
 
 **Kubebuilder** — Layout and comment conventions (`PROJECT`, `// +kubebuilder:`). We wrote those by hand; we do not need the Kubebuilder CLI.
 
-**controller-gen** — Reads those comments and writes the CustomResourceDefinition plus DeepCopy code. `make operator-generate`.
+**controller-gen** — Reads those comments and writes the CustomResourceDefinition, DeepCopy code, and ClusterRole. `make operator-generate`.
 
 **controller-runtime** — Go library that will run the watch loop (`operator-run`). Already a module dependency.
 
